@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+vendor/impeccable/skills/scripts/bin/
+.DS_Store
