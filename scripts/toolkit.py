@@ -271,16 +271,35 @@ def verify_runtime(project=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['install', 'verify', 'status', 'emit-routes', 'verify-sources', 'setup-runtime', 'verify-runtime'])
+    parser.add_argument('command', choices=['install', 'verify', 'status', 'emit-routes', 'init-project', 'bootstrap-global', 'verify-sources', 'setup-runtime', 'verify-runtime'])
+    parser.add_argument('target', nargs='?', type=Path, help='Git repository root for init-project')
     parser.add_argument('--project', type=Path)
     parser.add_argument('--agents', nargs='+', choices=['codex', 'claude'], default=['codex', 'claude'])
     parser.add_argument('--check', action='store_true', help='With emit-routes, fail on missing/stale blocks without changing files')
+    parser.add_argument('--codex-home', type=Path, help='With bootstrap-global, defaults to CODEX_HOME or ~/.codex')
     args = parser.parse_args()
     if args.check and args.command != 'emit-routes':
         parser.error('--check is only valid with emit-routes')
+    if args.target and args.command != 'init-project':
+        parser.error('A positional target is only valid with init-project')
+    if args.codex_home and args.command != 'bootstrap-global':
+        parser.error('--codex-home is only valid with bootstrap-global')
     if args.project and not args.project.is_dir():
         parser.error('--project must name an existing project directory')
-    if args.command == 'verify-sources':
+    if args.command == 'init-project':
+        if bool(args.target) == bool(args.project):
+            parser.error('Provide one target repository, positionally or with --project')
+        if args.agents != ['codex', 'claude']:
+            parser.error('init-project initializes both agents; use install for individual-agent changes')
+        from project_setup import init_project
+        verify_sources()
+        print(json.dumps(init_project(args.target or args.project, ROOT), indent=2))
+    elif args.command == 'bootstrap-global':
+        from project_setup import bootstrap_global
+        verify_sources()
+        home = args.codex_home or Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex')))
+        print(json.dumps(bootstrap_global(ROOT, home), indent=2))
+    elif args.command == 'verify-sources':
         data = verify_sources()
         print(f'PASS: {len(data["files"])} vendored files match toolkit.lock.json')
     elif args.command == 'setup-runtime':
