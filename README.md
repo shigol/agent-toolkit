@@ -18,7 +18,7 @@ Exact upstream commits, all vendored file hashes, skill names and paths are in `
 
 Read [USAGE.md](USAGE.md) for selection guidance. Project-specific UX and brand rules belong in each app's own PRODUCT.md, DESIGN.md and agent instructions.
 Every registered skill has a [selection guide](catalog/README.md). New skills require the same description and examples; catalogue admission checks run in CI. Track ongoing implementation and host verification in [WORKING-PLAN.md](WORKING-PLAN.md).
-Agents follow [SELECTION.md](SELECTION.md): routes first, then the catalogue index, then search if still unsure. Use [INTAKE.md](INTAKE.md) when asked to add a source. Intake is triggered by the request to the agent; no background model service is installed. Search validates the whole registered catalogue and reaches unlinked groups while honoring explicit exclusions. Publication and live readiness remain separate states.
+Agents follow [SELECTION.md](SELECTION.md): Codex starts with native discovery; hosted Claude uses project routes. Missing coverage falls back to routes, the catalogue index, then search if still unsure. Use [INTAKE.md](INTAKE.md) when asked to add a source. Intake is triggered by the request to the agent; no background model service is installed. Search validates the whole registered catalogue and reaches unlinked groups while honoring explicit exclusions. Publication and live readiness remain separate states.
 
 ## Project selections
 
