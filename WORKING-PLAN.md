@@ -2,6 +2,20 @@
 
 Updated: 2026-10-27. Status: implementation in progress.
 
+## Mission and authority to adapt
+
+Eugene regularly discovers skills in posts and repositories. He wants to add a skill once to a durable shared library and have the system do the remaining work: understand it, map its purpose and overlaps, make it available to relevant connected projects, and use it appropriately in Claude and Codex without him naming skills or maintaining separate installations. This must remain useful as the library grows to hundreds of skills and as a conversation moves between research, development, design, writing and video work.
+
+Optimize for that everyday experience and demonstrable task quality. The user should supply the task or new skill source, not act as the skill router. Avoid context overload, needless skill invocation and recurring manual maintenance.
+
+The implementing agent owns the technical approach. This document proposes a route; it is not a requirement to implement every suggested mechanism. You may reorder phases, simplify or replace the search/intake architecture, change metadata and default selections, or discard an unnecessary component when inspection or experiments show a better way to achieve the mission. Do not ask Eugene to decide routine implementation details or approve each deviation.
+
+Record material deviations here with the evidence, reason and effect on the acceptance tests, then continue. The current lexical-search proposal, CLI shape, phase order and numerical evaluation target are starting hypotheses, not user-mandated architecture. Do not build complexity merely to satisfy the checklist, and do not weaken tests merely to declare completion.
+
+Preserve the actual user requirements: one shared source accessible from different machines; relevant availability across connected projects in both agents; appropriate automatic selection without the user naming skills; bounded context as the library grows; project instructions, source invocation restrictions and existing publication controls; honest evidence of what was tested. Explain any unavoidable platform limitation and implement the best supported path. If a material change would require new user authorization or change these requirements, surface that specific decision rather than silently changing the goal.
+
+Completion means the everyday workflow works: submit a new skill, let the system describe and map it, propagate it through the connected projects, and demonstrate that Claude and Codex choose and use it for a suitable unnamed task while leaving it unused for unsuitable tasks. Repeat with an existing-skill edit. Installed files, metadata checks and an agent saying it used a skill are supporting evidence, not the final outcome.
+
 ## Success
 
 Add a skill once. The system records its purpose, scope, requirements and overlaps from source evidence. Approved additions reach connected projects; Claude and Codex select relevant skills without the user naming them. Full instructions load only when useful. Project requirements and manual-only restrictions govern execution.
@@ -21,7 +35,7 @@ Availability requires the consumer update and setup to complete. Existing chats 
 
 Proceed in this session, following dependencies rather than waiting days between phases. Live host access can block behavioral proof without blocking implementation. Record results instead of promising a calendar completion date.
 
-## Decisions
+## Current approach and constraints
 
 - Keep one shared library; local project procedures stay local.
 - Keep native defaults small; make every registered guide searchable even when its group has no native links.
@@ -106,7 +120,7 @@ If a live host is inaccessible, finish independent implementation and mark that 
 
 ## Session boundary
 
-This document is the handoff contract. Keep completed evidence and pending work separate. Foundation changes are ready for a reviewable PR; retrieval, intake, consumer rollout and actual behavioral testing have not been implemented. The next agent should continue from the branch rather than regenerate the 28 guides.
+Use the mission above to guide implementation and adapt this proposed plan as needed. Keep completed evidence and pending work separate. Foundation changes are published in draft PR #3; retrieval, intake, consumer rollout and actual behavioral testing have not been implemented. Continue from the branch and reuse the 28 guides, revising them where source evidence requires it.
 
 ## Next action
 
