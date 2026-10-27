@@ -56,7 +56,7 @@ def selection(project, data):
     if config.is_symlink():
         raise RuntimeError('Project selection must be a regular file')
     settings = json.loads(config.read_text())
-    if not isinstance(settings, dict) or settings.get('schema') != 1 or set(settings) - {'schema', 'groups', 'include', 'exclude'}:
+    if not isinstance(settings, dict) or settings.get('schema') != 1 or set(settings) - {'schema', 'groups', 'include', 'exclude', 'native_limit'}:
         raise RuntimeError('Invalid project selection format')
     groups = settings.get('groups')
     include, exclude = settings.get('include', []), settings.get('exclude', [])
@@ -67,7 +67,18 @@ def selection(project, data):
     if set(groups) - set(data.get('groups', {})) or (set(include) | set(exclude)) - available:
         raise RuntimeError('Unknown group or skill in project selection')
     packages = {p for g in groups for p in data['groups'][g]}
-    return [s for s in data['skills'] if (s['package'] in packages or s['name'] in include) and s['name'] not in exclude]
+    selected = [s for s in data['skills'] if (s['package'] in packages or s['name'] in include) and s['name'] not in exclude]
+    limit = settings.get('native_limit')
+    if 'native_limit' not in settings:
+        return selected
+    if type(limit) is not int or limit < 1:
+        raise RuntimeError('native_limit must be a positive integer')
+    forced = [s for s in selected if s['name'] in include]
+    if len(forced) > limit:
+        raise RuntimeError('Explicit includes exceed native_limit; adjust the project selection')
+    remaining = [s for s in selected if s['name'] not in include]
+    chosen = {s['name'] for s in forced + remaining[:limit - len(forced)]}
+    return [s for s in selected if s['name'] in chosen]
 
 
 def destinations(project, agents, data):
@@ -127,6 +138,7 @@ def status(project, agents):
     selected = selection(project, data)
     result = {'project': str(project), 'library_skills': len(data['skills']),
               'selected': [s['name'] for s in selected], 'agents': {},
+              'library_access': 'Search the full catalogue with scripts/skills.py; native links are only a subset. Explicit exclusions still apply.',
               'session_discovery': 'Not verified. Reload the agent or read the selected SKILL.md directly.'}
     missing = False
     for agent in agents:

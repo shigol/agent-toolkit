@@ -12,7 +12,7 @@ Shared, versioned design, video, writing and product skills for Eugene's project
 | [HyperFrames](https://github.com/heygen-com/hyperframes) | 5 | Local motion graphics and video creation |
 | [Humanizer](https://github.com/blader/humanizer) | 1 | Editing prose |
 | [PM Skills](https://github.com/phuryn/pm-skills) | 5 | Strategy, metrics, prioritization, PRDs and market sizing |
-| [Superpowers](https://github.com/obra/superpowers) | 1 | Evidence before development completion claims |
+| [Superpowers](https://github.com/obra/superpowers) | 2 | Root-cause debugging and evidence before completion claims |
 
 Exact upstream commits, all vendored file hashes, skill names and paths are in `toolkit.lock.json`. Full supporting files are included. Upstream licenses and notices are preserved beside each collection under `vendor/`; they govern those files. The POSIX Impeccable launcher has its executable bit set for direct invocation; file contents are unchanged. Toolkit-owned scripts and docs are maintained in this public repository; no license grant is implied for those files.
 
@@ -25,11 +25,13 @@ Agents follow [SELECTION.md](SELECTION.md) for bounded task-based discovery and 
 Commit `.agent-toolkit.json` in the consuming project. Both agents use the same selection:
 
 ```json
-{"schema": 1, "groups": ["design", "video"]}
+{"schema": 1, "groups": ["design", "video"], "native_limit": 22}
 ```
 
 Groups are `design` (17 skills), `video` (five HyperFrames entry skills), `writing` (Humanizer), and `product` (five PM skills). These four are the original native selections; development is described below. Optional `include` and `exclude` arrays take exact skill names. No config preserves the earlier all-skills behavior; invalid config stops setup before changes.
-The new `development` group contains verification-before-completion. Existing group choices control native links; the full catalogue remains searchable. Explicit `exclude` names are excluded from search as well. Include `development` only if native exposure is desired; it is not required for direct-file task selection.
+The `development` group contains verification-before-completion and systematic-debugging. Existing group choices control native links; the full catalogue remains searchable. Explicit `exclude` names are excluded from search as well. Include `development` only if native exposure is desired; it is not required for direct-file task selection.
+
+Set an optional positive integer `native_limit` to bound native catalogue growth, for example `{"schema":1,"groups":["design","video"],"native_limit":22}`. The first matching registered entries remain native; later additions remain searchable without new native links. Explicit `include` names take priority within the cap; exceeding it fails clearly rather than silently dropping requested names. Omitting the limit preserves older behavior. This caps skill count, not tokens; keep descriptions concise and measure actual host context separately. Consumer owners can opt in with limits of 28/22 to preserve the original native sets while allowing library growth.
 
 Groups map to packages in `toolkit.lock.json`, so newly registered skills in a selected package join after the next checked update and setup. Unselected groups stay in the library without agent discovery links. Narrowing a selection removes only exact toolkit-owned symlinks, preserving local skills and foreign links. A selected name conflicting with a local skill stops installation. Project-specific operational skills stay in their project.
 

@@ -18,7 +18,7 @@ The project's `.agent-toolkit.json` controls which groups both agents discover. 
 
 ## Agent-specific behavior
 
-Codex discovers `.agents/skills`; Claude Code discovers `.claude/skills`. The installer creates relative symlinks to one shared copy of each skill. Ordinary Claude web chats do not discover these folders automatically. Managed Claude project threads may also report Unknown skill despite installed files; read the selected SKILL.md directly in that host. Do not rely on a reload to enable its Skill tool.
+Codex discovers `.agents/skills`; compatible Claude Code hosts discover `.claude/skills`. The installer creates relative symlinks to one shared copy of each skill. Ordinary Claude web chats do not discover these folders automatically. Live remote_projects probes on 2026-10-27 skipped repository hooks and exposed account skills, correcting the earlier claim that SessionStart would initialize those threads. In that hosted surface, Claude owns the account-level `shared-skills` bootstrap, which points into the same library and supports direct SKILL.md reading. Discovery of that adapter was reported in both projects; substantive invocation is tracked separately in EVIDENCE.md and Career SHARED.md. Do not rely on a reload or repo hook to enable hosted Skill-tool discovery. Keep one shared policy; the adapter does not duplicate all skills or grant repository access.
 
 Hooks are not installed automatically. Skill invocation and Impeccable's engine work without edit hooks. If a project opts into Impeccable detector hooks, follow the vendored `reference/hooks.md` and the agent's trust flow, preserve existing configuration, and review the resulting files. A hook configuration for one agent is not assumed to work in another.
 
