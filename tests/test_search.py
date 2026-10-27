@@ -41,7 +41,7 @@ class SearchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             project = Path(folder)
             config = project / '.agent-toolkit.json'
-            config.write_text(json.dumps({'schema': 1, 'groups': ['design']}))
+            config.write_text(json.dumps({'schema': 1, 'groups': ['design'], 'native_limit': 1}))
             cmd = [sys.executable, str(ROOT / 'scripts/skills.py'), 'search', '--project', folder,
                    '--query', 'Estimate TAM SAM and SOM']
             self.assertIn('market-sizing', subprocess.check_output(cmd, text=True))
