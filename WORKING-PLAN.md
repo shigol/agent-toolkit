@@ -1,6 +1,6 @@
 # Shared skills: mission, architecture and delivery plan
 
-Updated: 2026-10-27. Status: foundation on draft PR #3; automatic intake, selection and live validation remain to be built.
+Updated: 2026-10-27. Status: foundation and intake/search implementation merged in PRs #3/#4; consumer rollout in progress and live host validation blocked/unverified. See [EVIDENCE.md](EVIDENCE.md) for observed results.
 
 ## 1. Mission and freedom to adapt
 
@@ -107,12 +107,12 @@ Milestones may be reordered when evidence supports it. Each checkpoint ends with
 
 | Milestone | Deliverable and acceptance | Current status |
 | --- | --- | --- |
-| A. Foundation | All current guides, admission validation and documented restrictions | 28 guides; checks pass locally; draft PR #3 |
-| B. Host feasibility and evaluation fixtures | Skills-only startup, within-budget pointer and direct source reads in new threads; prove Claude publication access; estimate/cap evaluation cost | Pending; live Claude review supplies partial evidence, not toolkit startup proof |
-| C. First vertical slice | One new capability goes through intake, selection and useful execution in a disposable consumer; then both real consumers | Pending |
-| D. Reusable workflow | Shared intake, bounded retrieval, idempotent lifecycle and concise host adapters | Pending |
-| E. Delivery integration | Tested add/edit propagation, fresh/existing setup, compatible automatic path and rollback | Pending |
-| F. Release verification | Host/project matrix, quality comparison, failure cases and scale evidence | Pending |
+| A. Foundation | All current guides, admission validation and documented restrictions | Merged #3; now 29 guides after intake |
+| B. Host feasibility and evaluation fixtures | Skills-only startup, within-budget pointer and direct source reads in new threads; prove Claude publication access; estimate/cap evaluation cost | Startup implemented in consumer worktrees; nested Codex CLI blocked; actual Claude pending |
+| C. First vertical slice | One new capability goes through intake, selection and useful execution in a disposable consumer; then both real consumers | Actual pinned MIT skill admitted and retrieved; live model application pending |
+| D. Reusable workflow | Shared intake, bounded retrieval, idempotent lifecycle and concise host adapters | Intake/search merged #4; host adapters in consumer rollout |
+| E. Delivery integration | Tested add/edit propagation, fresh/existing setup, compatible automatic path and rollback | Consumer rollout in progress; local edit/reversion/failure fixtures pass |
+| F. Release verification | Host/project matrix, quality comparison, failure cases and scale evidence | 320-entry deterministic test passes; live matrix remains unverified |
 
 Start the vertical slice with a dependency-light, useful skill that adds a distinct capability. Do not choose a fake skill designed merely to echo a marker. Use disposable branches/checkouts to avoid test artifacts entering production. Review the actual source and license before admission.
 
@@ -196,14 +196,14 @@ Keep maintenance simple: source updates rerun admission and affected evaluation 
 
 ## 8. Repository handoff and verified starting state
 
-- Shared repository: https://github.com/shigol/agent-toolkit. Continue branch codex/skill-selection-guides, draft https://github.com/shigol/agent-toolkit/pull/3. Read AGENTS.md, README.md and USAGE.md before implementation.
+- Shared repository: https://github.com/shigol/agent-toolkit. Foundation PR #3 and implementation PR #4 are merged. Start from current main and read AGENTS.md, README.md and USAGE.md before changes. The former foundation branch is historical, not the current handoff.
 - Consumers: shigol/career and shigol/eugene-s-job-hub. Read each repository's rules first. Fetch current main; the recorded baseline toolkit revision is 7c92ce19bb9293a1db4855755a1b8ae438d04366, not a promise that consumers still use it.
 - Implementation: scripts/toolkit.py, toolkit.lock.json, catalog/, tests/. Preserve source/license hashes and documented portability patches. Consumer workflows already validate installation and restrict automatic merging of executable/setup changes.
 - Tracking: EVG-124 in Linear. Record milestone evidence, PRs and blockers; keep it open until the declared supported host matrix passes.
 - Verified locally on the foundation branch: 28 guides, 19 Python tests, four Node browser-discovery tests, 1,082 vendored hashes and git diff --check. These do not establish real agent selection.
 - Three sources set disable-model-invocation: true. Preserve their restrictions. Codex CLI exists here; Claude CLI does not. Neither executable presence nor absence establishes all remote-host capabilities.
 - Taste's Chromium fallback is already implemented at the recorded baseline via merged toolkit PR #2: vendor/taste/skills/scripts/lib/cdp.mjs checks /opt/pw-browsers/chromium without settings env. Four Node tests cover discovery and override precedence. Claude's review repeats the earlier missing-fallback diagnosis; do not duplicate the patch. A real browser launch in the actual Claude host remains to be verified separately.
-- Automatic intake, bounded search, bootstrap verification, consumer rollout and live behavioral comparison are pending. Reuse the guides; revise inaccuracies when source evidence requires it.
+- Automatic agent-assisted intake and bounded search are implemented. Bootstrap implementation, consumer rollout and live behavioral evidence are tracked separately above. Reuse the guides; revise inaccuracies when source evidence requires it.
 
 ## 9. Next actions and change log
 
