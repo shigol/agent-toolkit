@@ -37,3 +37,14 @@ test('writers allowed; readers denied before reading a brief or dispatching',asy
   const writer=client('write');writer.context.payload.comment.user.login='claude-writer';await dispatch({...writer,root});assert.equal(writer.calls.length,2);
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+
+test('acceptance modes are an explicit whitelist and cannot select a ref or inline prompt',async()=>{
+ const root=fixture();
+ try {
+  for(const mode of ['native','global','value-smoke','value']) {
+   const c=client();c.context.payload.comment.body='/codex-run docs/brief.md '+mode;
+   await dispatch({...c,root});assert.equal(c.calls[0].inputs.mode,mode);assert.equal(c.calls[0].ref,'main');
+  }
+  for(const body of ['/codex-run docs/brief.md unknown','/codex-run docs/brief.md value --ref attacker','/codex-run docs/brief.md value;evil']) assert.throws(()=>parse(body));
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
