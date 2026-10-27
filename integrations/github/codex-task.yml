@@ -166,6 +166,7 @@ jobs:
             const number = Number(process.env.REQUEST_ISSUE);
             if (!Number.isSafeInteger(number) || number < 1) throw Error('Invalid request issue');
             const url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const outcome = process.env.RUN_RESULT === 'success' && process.env.SAVE_RESULT === 'success' ? 'done' : 'failed';
             const branch = process.env.RESULT_BRANCH ? ` Review branch: ${process.env.RESULT_BRANCH}.` : '';
             await github.rest.issues.createComment({...context.repo, issue_number: number,
-              body: `Codex run ${context.runId}, request ${process.env.REQUEST_ID}: worker=${process.env.RUN_RESULT}, save=${process.env.SAVE_RESULT}.${branch} Answer, source-read log and patch: ${url}. Nothing was merged or deployed.`});
+              body: `Codex run ${context.runId} ${outcome}: request ${process.env.REQUEST_ID}; worker=${process.env.RUN_RESULT}, save=${process.env.SAVE_RESULT}.${branch} Answer, source-read log and patch: ${url}. Nothing was merged or deployed.`});
