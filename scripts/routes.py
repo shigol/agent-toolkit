@@ -16,26 +16,21 @@ def block(root, selected):
         restriction = entry['fields']['Invocation']
         route = entry['fields']['Route']
         if restriction == 'explicit-only':
-            route = 'Only when the skill is named explicitly, ' + route
+            route = 'Only on explicit skill name, ' + route
         elif restriction == 'explicit-direction':
-            route = 'Explicit alternative design direction only, ' + route
+            route = 'Explicit alternative direction only, ' + route
         target[route].append(name)
     lines = [START,
-             'Skills, before your first edit or draft: follow every matching route below and read its whole SKILL.md. '
-             'Use the native link or the catalogue guide\'s Source path. Several routes fit: use all relevant workflows; '
-             'choose one primary design workflow. No route fits: read .agent-toolkit/catalog/README.md; '
-             'search only if still unsure: python3 .agent-toolkit/scripts/skills.py search --project . --query "<task>".',
-             'Project rules and required template fields win. Humanizer edits free prose, never quotes, data or evidence. '
-             'Read its whole source for documents and outside messages; its ### pattern list is enough for short replies and PR bodies.']
+             'Before edits/drafts, read every matching SKILL.md in full; one primary UI workflow. '
+             'Missing task coverage: .agent-toolkit/catalog/README.md; search last. Project rules/templates win. '
+             'Humanizer: prose only; whole source for docs/outside messages, ### patterns for short replies/PRs. Preserve facts/quotes/evidence.']
     for route, names in automatic.items():
         lines.append('- ' + route + ': ' + ', '.join(names))
     for route, names in restricted.items():
         lines.append('- ' + route + ': ' + ', '.join(names))
     lines += ['Sources: .agents/skills/<name>/SKILL.md or .claude/skills/<name>/SKILL.md; '
-              'if unlinked, read .agent-toolkit/catalog/<name>.md and its Source. '
-              'Missing toolkit: run the project\'s documented skills-only setup. '
-              'An explicit exclusion still applies when reading the full index.',
-              'Each commit/PR: Skills: <names actually read and used>, or Skills: none (<why>).', END]
+              'else catalogue Source. Missing: skills-only setup. Honor exclusions.',
+              'Each commit/PR: Skills: <names actually read/used> or Skills: none (<why>).', END]
     return '\n'.join(lines) + '\n'
 
 

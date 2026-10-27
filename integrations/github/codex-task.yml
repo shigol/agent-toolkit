@@ -1,0 +1,149 @@
+name: Codex committed brief
+run-name: Codex request ${{ inputs.request_id || github.run_id }} — ${{ inputs.brief }}
+on:
+  workflow_dispatch:
+    inputs:
+      brief:
+        description: Committed brief path (codex/, docs/ or tools/; Markdown)
+        required: true
+      mode:
+        description: Task execution or bounded selection acceptance probe
+        type: choice
+        options: [task, native, global]
+        default: task
+      request_issue:
+        description: Optional issue or PR to receive status
+        default: ''
+      request_id:
+        description: Optional source comment ID
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: codex-committed-brief
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate committed brief
+        env:
+          BRIEF: ${{ inputs.brief }}
+        run: node -e 'require("./.github/scripts/codex_request.cjs").briefPath(process.env.BRIEF)'
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/codex-auth
+          key: codex-auth-latest
+          restore-keys: codex-auth-
+      - name: Load existing ChatGPT authentication
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+        run: |
+          sudo apt-get install -y bubblewrap >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y bubblewrap >/dev/null; }
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          npm install -g @openai/codex >/dev/null
+          if [ -f .github/scripts/codex_auth.sh ]; then
+            test -s "$RUNNER_TEMP/codex-auth/auth.enc" || { echo '::error::Maintained authentication cache is unavailable'; exit 1; }
+            bash .github/scripts/codex_auth.sh use
+          else
+            test -n "$CODEX_AUTH_JSON"
+            mkdir -p ~/.codex
+            printf '%s' "$CODEX_AUTH_JSON" > ~/.codex/auth.json
+            chmod 600 ~/.codex/auth.json
+          fi
+          codex login status > "$RUNNER_TEMP/task-auth-status.txt" 2>&1
+          grep -qi ChatGPT "$RUNNER_TEMP/task-auth-status.txt" || { echo '::error::ChatGPT login required'; exit 1; }
+      - name: Initialize the project and global skill fallback
+        run: |
+          if [ -f tools/setup-agent-toolkit.sh ]; then
+            bash tools/setup-agent-toolkit.sh --skills-only
+          else
+            sh scripts/setup-agent-toolkit.sh --skills-only
+          fi
+          python3 .agent-toolkit/scripts/toolkit.py bootstrap-global
+      - name: Execute one committed brief
+        env:
+          BRIEF: ${{ inputs.brief }}
+          TASK_MODE: ${{ inputs.mode }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/codex-task"
+          if [ "$TASK_MODE" = native ] || [ "$TASK_MODE" = global ]; then
+            python3 .agent-toolkit/scripts/selection_probe.py --mode "$TASK_MODE" --output "$RUNNER_TEMP/codex-task/probe" --effort medium
+            exit 0
+          fi
+          {
+            printf '%s\n' 'Execute this committed brief. Follow project rules and choose relevant skills. Read selected SKILL.md files, and finish with Skills: naming only sources actually read. Never push, merge, publish or read credential files. Run appropriate checks; report any limitation. Your changes and answer are saved separately for review.'
+            cat "$BRIEF"
+          } > "$RUNNER_TEMP/task-prompt.md"
+          codex exec --json --skip-git-repo-check -s workspace-write -C "$GITHUB_WORKSPACE" -c model_reasoning_effort=medium -o "$RUNNER_TEMP/codex-task/answer.md" - < "$RUNNER_TEMP/task-prompt.md" > "$RUNNER_TEMP/codex-task/trace.jsonl" 2> "$RUNNER_TEMP/codex-task/error.log"
+      - name: Audit declared skill reads
+        if: always() && inputs.mode == 'task'
+        run: |
+          if [ -s "$RUNNER_TEMP/codex-task/trace.jsonl" ] && [ -s "$RUNNER_TEMP/codex-task/answer.md" ]; then
+            python3 .agent-toolkit/scripts/audit_skill_reads.py --trace "$RUNNER_TEMP/codex-task/trace.jsonl" --answer "$RUNNER_TEMP/codex-task/answer.md" --output "$RUNNER_TEMP/codex-task/skill-audit.json"
+          fi
+      - name: Save a review patch
+        if: always()
+        run: python3 .github/scripts/codex_task_patch.py "$RUNNER_TEMP/codex-task"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codex-task-${{ github.run_id }}
+          path: ${{ runner.temp }}/codex-task/
+          retention-days: 14
+          if-no-files-found: error
+  result:
+    needs: run
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: codex-task-${{ github.run_id }}
+          path: ${{ runner.temp }}/codex-task
+      - name: Save changes on a review branch
+        id: save
+        env:
+          RESULT_BRANCH: codex/task-${{ github.run_id }}
+        run: |
+          patch="$RUNNER_TEMP/codex-task/changes.patch"
+          if [ ! -s "$patch" ]; then exit 0; fi
+          # No candidate code or hooks execute in the job holding the repository token.
+          python3 .github/scripts/codex_task_patch.py apply "$patch"
+          git switch -c "$RESULT_BRANCH"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -c core.hooksPath=/dev/null commit -m "Codex: save committed-brief result for review (run ${{ github.run_id }})" -m "Skills: none (transport of the worker's patch; source claims are in its attached answer and trace)"
+          git push origin "$RESULT_BRANCH"
+          echo "branch=$RESULT_BRANCH" >> "$GITHUB_OUTPUT"
+      - name: Return status to the request thread
+        if: always() && inputs.request_issue != ''
+        uses: actions/github-script@v7
+        env:
+          REQUEST_ISSUE: ${{ inputs.request_issue }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          RUN_RESULT: ${{ needs.run.result }}
+          RESULT_BRANCH: ${{ steps.save.outputs.branch }}
+          SAVE_RESULT: ${{ steps.save.outcome }}
+        with:
+          script: |
+            const number = Number(process.env.REQUEST_ISSUE);
+            if (!Number.isSafeInteger(number) || number < 1) throw Error('Invalid request issue');
+            const url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const branch = process.env.RESULT_BRANCH ? ` Review branch: ${process.env.RESULT_BRANCH}.` : '';
+            await github.rest.issues.createComment({...context.repo, issue_number: number,
+              body: `Codex run ${context.runId}, request ${process.env.REQUEST_ID}: worker=${process.env.RUN_RESULT}, save=${process.env.SAVE_RESULT}.${branch} Answer, source-read log and patch: ${url}. Nothing was merged or deployed.`});

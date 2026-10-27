@@ -45,6 +45,7 @@ def native_block():
             'Use one primary UI workflow: impeccable by default; design-taste-frontend only for an explicit alternative direction. '
             'Use humanizer for prose (whole source for documents/outside messages; ### patterns for short replies/PR bodies) '
             'and verification-before-completion for tests and completion claims. '
+            'This Codex selection rule takes precedence over Claude-specific routing in CLAUDE.md; its other project rules still apply. '
             'Project rules and factual/template constraints win. Each commit/PR names only skills actually read: '
             'Skills: <names>, or Skills: none (<why>).\n' + NATIVE_END + '\n')
 
@@ -70,9 +71,10 @@ def init_project(project, root, source=PUBLIC_SOURCE):
     manifest = json.loads((root / 'toolkit.lock.json').read_text())
     templates = root / 'integrations/github'
     files = {'.github/scripts/' + name: (templates / name).read_bytes() for name in
-             ('toolkit_update.py', 'test_toolkit_update.py', 'merge_toolkit.cjs', 'merge_toolkit.test.cjs')}
+             ('toolkit_update.py', 'test_toolkit_update.py', 'merge_toolkit.cjs', 'merge_toolkit.test.cjs', 'codex_request.cjs',
+              'codex_request.test.cjs', 'codex_task_patch.py')}
     files.update({'.github/workflows/' + name: (templates / name).read_bytes() for name in
-                  ('agent-toolkit-check.yml', 'agent-toolkit-merge.yml')})
+                  ('agent-toolkit-check.yml', 'agent-toolkit-merge.yml', 'codex-request.yml', 'codex-task.yml')})
     files['.github/dependabot.yml'] = (templates / 'dependabot.yml').read_bytes()
     files['tools/setup-agent-toolkit.sh'] = (templates / 'setup-agent-toolkit.sh').read_bytes()
     for name in ('AGENTS.md', 'CLAUDE.md', '.agent-toolkit.json', '.gitmodules'):
@@ -91,8 +93,11 @@ def init_project(project, root, source=PUBLIC_SOURCE):
     original_native = replace_block(original_native, '')
     files['AGENTS.md'] = marked(original_native,
                                native_block(), NATIVE_START, NATIVE_END).encode()
-    files['CLAUDE.md'] = replace_block((project / 'CLAUDE.md').read_text() if (project / 'CLAUDE.md').exists() else '',
-                                      block(root, selected)).encode()
+    claude_text = (project / 'CLAUDE.md').read_text() if (project / 'CLAUDE.md').exists() else ''
+    startup = 'Shared toolkit startup: bash tools/setup-agent-toolkit.sh --skills-only when source files are absent.\n'
+    if startup not in claude_text:
+        claude_text = startup + claude_text
+    files['CLAUDE.md'] = replace_block(claude_text, block(root, selected)).encode()
     for name in [*files, '.gitmodules']:
         regular(project, project / name)
     for name, content in files.items():
