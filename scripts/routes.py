@@ -16,20 +16,20 @@ def block(root, selected):
         restriction = entry['fields']['Invocation']
         route = entry['fields']['Route']
         if restriction == 'explicit-only':
-            route = 'Only when the skill is named explicitly, ' + route
+            route = 'Only on explicit skill name, ' + route
         elif restriction == 'explicit-direction':
-            route = 'Explicit alternative design direction only, ' + route
+            route = 'Explicit alternative direction only, ' + route
         target[route].append(name)
     lines = [START,
              'Before edits/drafts, read every matching SKILL.md in full; one primary UI workflow. '
-             'None: .agent-toolkit/catalog/README.md, then search if unsure. Project rules/templates win. '
+             'Missing task coverage: .agent-toolkit/catalog/README.md; search last. Project rules/templates win. '
              'Humanizer: prose only; whole source for docs/outside messages, ### patterns for short replies/PRs. Preserve facts/quotes/evidence.']
     for route, names in automatic.items():
         lines.append('- ' + route + ': ' + ', '.join(names))
     for route, names in restricted.items():
         lines.append('- ' + route + ': ' + ', '.join(names))
     lines += ['Sources: .agents/skills/<name>/SKILL.md or .claude/skills/<name>/SKILL.md; '
-              'else catalogue Source. Missing: documented skills-only setup. Honor exclusions.',
+              'else catalogue Source. Missing: skills-only setup. Honor exclusions.',
               'Each commit/PR: Skills: <names actually read/used> or Skills: none (<why>).', END]
     return '\n'.join(lines) + '\n'
 

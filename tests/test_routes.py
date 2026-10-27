@@ -62,8 +62,8 @@ class RouteTests(unittest.TestCase):
         lines = (self.project / 'AGENTS.md').read_text().splitlines()
         for name in ('prototype', 'pick-ui-library', 'review-animations'):
             line = next(line for line in lines if line.endswith(': ' + name))
-            self.assertTrue(line.startswith('- Only when the skill is named explicitly,'))
-        self.assertIn('Explicit alternative design direction only', '\n'.join(lines))
+            self.assertTrue(line.startswith('- Only on explicit skill name,'))
+        self.assertIn('Explicit alternative direction only', '\n'.join(lines))
 
     def test_check_detects_stale_missing_and_unresolvable_without_writing(self):
         self.select(['writing'])
