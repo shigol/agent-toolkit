@@ -61,11 +61,15 @@ jobs:
           codex login status > "$RUNNER_TEMP/task-auth-status.txt" 2>&1
           grep -qi ChatGPT "$RUNNER_TEMP/task-auth-status.txt" || { echo '::error::ChatGPT login required'; exit 1; }
       - name: Initialize the project and global skill fallback
+        env:
+          TASK_MODE: ${{ inputs.mode }}
         run: |
+          setup_mode=--skills-only
+          if [ "$TASK_MODE" = value ]; then setup_mode=; fi
           if [ -f tools/setup-agent-toolkit.sh ]; then
-            bash tools/setup-agent-toolkit.sh --skills-only
+            bash tools/setup-agent-toolkit.sh "$setup_mode"
           else
-            sh scripts/setup-agent-toolkit.sh --skills-only
+            sh scripts/setup-agent-toolkit.sh "$setup_mode"
           fi
           python3 .agent-toolkit/scripts/toolkit.py bootstrap-global
       - name: Execute one committed brief
