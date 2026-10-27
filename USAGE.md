@@ -7,7 +7,7 @@ The user's brief and the project's own requirements always take priority.
 - Emil's design engineering and animation skills refine interaction behavior after a direction is selected. Use prototype for variants and break-ui for difficult content. Native mobile and Swift skills apply only to projects using those platforms.
 
 Read the selected SKILL.md and its relevant references before applying it. Do not load every collection at once.
-Animation and illustration/video production are different capabilities. This initial toolkit does not include Remotion. The Job Hub's recorded motion work (EVG-89) used Charlie Hills' technique and custom CSS/React. The current app already vendors Impeccable 4.6.0 and emil-design-eng under codex/design; migrate those references deliberately when connecting this newer toolkit.
+Animation and illustration/video production are different capabilities. This toolkit does not include Remotion. The Job Hub's recorded motion work (EVG-89) used Charlie Hills' technique and custom CSS/React. Connected projects use their recorded toolkit version; the Job Hub's older codex/design paths are compatibility links to the shared skills.
 
 ## Agent-specific behavior
 
@@ -17,4 +17,4 @@ Hooks are not installed automatically. Skill invocation and Impeccable's engine 
 
 ## Updates
 
-An upstream commit is not a toolkit release. After reviewing updated source, scripts and licenses, refresh the vendored collection and its entries in toolkit.lock.json, run tests and runtime checks, then commit the toolkit update. Each consuming project advances its submodule commit in a separate reviewed change. Never fetch an unpinned latest version during routine project setup.
+An upstream commit is not a toolkit release. After reviewing updated source, scripts and licenses, refresh the vendored collection and its entries in toolkit.lock.json, run tests and runtime checks, then commit the toolkit update. Each consuming project advances its submodule commit in a separate PR. Projects with the automatic-update integration can merge compatible checked text updates automatically; executable/setup changes and removals need review. See README.md for registration and update rules. Never fetch an unpinned latest version during routine project setup.
