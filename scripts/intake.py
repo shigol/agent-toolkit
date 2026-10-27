@@ -162,6 +162,10 @@ def intake(request, root=ROOT, apply=False):
                     target = root / path
                     if backup is None:
                         target.unlink(missing_ok=True)
+                        parent = target.parent
+                        while parent != root and parent.is_dir() and not any(parent.iterdir()):
+                            parent.rmdir()
+                            parent = parent.parent
                     else:
                         target.write_bytes(backup[0])
                         target.chmod(backup[1])

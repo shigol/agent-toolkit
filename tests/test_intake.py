@@ -112,7 +112,7 @@ class IntakeTests(unittest.TestCase):
 
         def fail_once(path, content):
             nonlocal fired
-            if path == self.root / 'toolkit.lock.json' and not fired:
+            if path == self.root / 'vendor/intake-fixture/skills/SKILL.md' and not fired:
                 fired = True
                 raise OSError('Injected write failure')
             return original(path, content)
@@ -122,7 +122,9 @@ class IntakeTests(unittest.TestCase):
         self.assertEqual(before, (self.root / 'catalog/README.md').read_bytes())
         self.assertFalse((self.root / 'catalog/intake-fixture.md').exists())
         self.assertFalse((self.root / '.intake-lock').exists())
+        self.assertFalse((self.root / 'vendor/intake-fixture').exists())
         skills.catalogue(self.root)
+        self.assertEqual(intake.intake(self.request, root=self.root, apply=True)['state'], 'applied')
 
 
 if __name__ == '__main__':
