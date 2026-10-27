@@ -1,10 +1,11 @@
 # Selecting skills
 
 The user's brief and the project's own requirements always take priority.
+Read the [selection catalogue](catalog/README.md) to distinguish overlapping skills; open only relevant guides and their sources. The [working plan](WORKING-PLAN.md) tracks the automatic-selection rollout and actual test evidence.
 
 - Impeccable is the default for product UI planning, critique, redesign and refinement. Choose its task-oriented app guidance for the Job Hub. Run the current skill's context step and inspect the rendered output.
 - Taste Skill is an explicitly selected alternative for exploring a different visual direction. Use its app-screen workflow for applications. Do not mix its full workflow with Impeccable in the same design pass.
-- Emil's design engineering and animation skills refine interaction behavior after a direction is selected. Use prototype for variants and break-ui for difficult content. Native mobile and Swift skills apply only to projects using those platforms.
+- Emil's design engineering and animation skills refine interaction behavior after a direction is selected. Use break-ui for difficult content. prototype, pick-ui-library and review-animations require explicit user invocation per their source flags. Native mobile and Swift skills apply only to projects using those platforms.
 
 - HyperFrames supports local motion graphics and video tasks. Read required domain guides directly under `vendor/hyperframes/skills/` when they are not exposed as slash commands. Publishing, cloud render, lambda and feedback uploads require an explicit user request. Verify the CLI/render prerequisites for the actual video task; installing instructions does not install the CLI.
 - Humanizer supports prose editing without overriding project tone, facts or CV rules. The five PM skills support strategy, metrics, prioritization, PRDs and market sizing when relevant.
