@@ -1,6 +1,6 @@
 # Shared skills: mission, architecture and delivery plan
 
-Updated: 2026-10-27. Status: foundation and intake/search implementation merged in PRs #3/#4; consumer rollout in progress and live host validation blocked/unverified. See [EVIDENCE.md](EVIDENCE.md) for observed results.
+Updated: 2026-10-27. Status: implementation merged in toolkit PRs #3–#5 and consumer PRs Career #100/app #235. Fresh checkout startup passes; actual live host selection remains blocked/unverified. See [EVIDENCE.md](EVIDENCE.md) for observed results.
 
 ## 1. Mission and freedom to adapt
 
@@ -108,10 +108,10 @@ Milestones may be reordered when evidence supports it. Each checkpoint ends with
 | Milestone | Deliverable and acceptance | Current status |
 | --- | --- | --- |
 | A. Foundation | All current guides, admission validation and documented restrictions | Merged #3; now 29 guides after intake |
-| B. Host feasibility and evaluation fixtures | Skills-only startup, within-budget pointer and direct source reads in new threads; prove Claude publication access; estimate/cap evaluation cost | Startup implemented in consumer worktrees; nested Codex CLI blocked; actual Claude pending |
+| B. Host feasibility and evaluation fixtures | Skills-only startup, within-budget pointer and direct source reads in new threads; prove Claude publication access; estimate/cap evaluation cost | Startup merged and command tested from fresh clones; nested Codex CLI blocked; actual Claude pending |
 | C. First vertical slice | One new capability goes through intake, selection and useful execution in a disposable consumer; then both real consumers | Actual pinned MIT skill admitted and retrieved; live model application pending |
-| D. Reusable workflow | Shared intake, bounded retrieval, idempotent lifecycle and concise host adapters | Intake/search merged #4; host adapters in consumer rollout |
-| E. Delivery integration | Tested add/edit propagation, fresh/existing setup, compatible automatic path and rollback | Consumer rollout in progress; local edit/reversion/failure fixtures pass |
+| D. Reusable workflow | Shared intake, bounded retrieval, idempotent lifecycle and concise host adapters | Merged intake/search #4, recovery #5, adapters Career #100/app #235 |
+| E. Delivery integration | Tested add/edit propagation, fresh/existing setup, compatible automatic path and rollback | Both consumer pins merged; fresh/repeated setup and local edit/reversion/failure fixtures pass; live agent use after changes pending |
 | F. Release verification | Host/project matrix, quality comparison, failure cases and scale evidence | 320-entry deterministic test passes; live matrix remains unverified |
 
 Start the vertical slice with a dependency-light, useful skill that adds a distinct capability. Do not choose a fake skill designed merely to echo a marker. Use disposable branches/checkouts to avoid test artifacts entering production. Review the actual source and license before admission.
@@ -207,11 +207,13 @@ Keep maintenance simple: source updates rerun admission and affected evaluation 
 
 ## 9. Next actions and change log
 
-1. Implement skills-only startup hooks preserving existing settings, fit the one-line pointer within each consumer's budget, then run the four capped fresh-thread probes. Check actual Claude publication access during the useful intake slice.
-2. Define the smallest useful new-skill scenario and baseline task checks.
-3. Implement and demonstrate that vertical slice before generalizing retrieval/intake.
-4. Update milestone status and evidence here, then continue to full verification.
+1. In actual Claude project threads, pull the merged consumers and run the capped fresh-thread probes: observe SessionStart, an unnamed task opening the on-demand policy, selected source reads and a useful result. Prove toolkit publication access during the first legitimate Claude intake update.
+2. Run the corresponding actual Codex host probes where the runtime can initialize; this session's nested CLI failed before a model response on a read-only filesystem. Do not copy credentials or weaken routing to bypass that failure.
+3. Use the admitted verification-before-completion skill for the first real add/edit task scenario, with held-out prompts and objective evidence. Compare native-only baseline and measure cost before expanding the smoke matrix.
+4. Keep the existing capped cost policy and mark unavailable cells unverified. Do not repeat deterministic checks solely to replace missing live-model evidence. Update EVG-124 and EVIDENCE.md as each live result becomes available.
 
 2026-10-27 architecture revision: replaced the feature-first sequence with a mission-driven vertical slice; added explicit triggers/delivery states, host feasibility, separate eligibility/readiness, bounded context and baseline artifact evaluation. Kept existing guides, publication controls and freedom to change implementation.
 
 2026-10-27 Claude review incorporated: [PR #3 review](https://github.com/shigol/agent-toolkit/pull/3#issuecomment-6445360498). Accepted the three must-fix requirements: fresh-thread skills-only SessionStart setup, an always-loaded one-line pointer within Career's 3.5 KB cap, and a cost-calibrated capped smoke test before the broad matrix. Deferred account-skill bootstrap, synthetic scale and accelerated delivery until the vertical slice. Corrected the stale Chromium diagnosis against code; actual host runtime and toolkit write access remain unverified. These are implementation requirements, not claims that consumer fixes have shipped.
+
+2026-10-27 implementation: consumer fixes have now shipped in Career #100/app #235. Both fresh checkout startup commands pass at the recorded toolkit pin; new skill intake/search and recovery are merged. The deterministic 320-entry test was inexpensive and completed locally; no model-scale evaluation was implied. One nested Codex probe failed before response; actual Claude execution is unavailable in this session. Remaining work is real-host behavioral and task-quality proof, with the cost caps above.

@@ -9,7 +9,20 @@ Updated 2026-10-27. This is a partial implementation report, not full live-host 
 - First real intake: MIT-licensed obra/superpowers verification-before-completion at 2ce8aa15d05bd57213e6f746f953aafb7ded7a8b, with source/license bytes preserved. Catalogue now has 29 skills. Dry run, applied import and repeated unchanged intake were exercised.
 - Local tests: 30 Python tests, including admitted-skill edits/reversion, rejection of weakened manual-only restrictions, source symlinks/path escapes, idempotency and write-failure restoration. Four Node browser-discovery tests pass. All 1,084 vendored hashes verify.
 - Retrieval fixtures cover UI, web motion, writing, market sizing, an unsupported database query, explicit exclusions, restricted workflows and 320 synthetic entries. Output is capped to five candidates/4,000 characters. These are deterministic tests, not measured agent selection accuracy.
-- Both consumer worktrees have exercised skills-only startup and cross-group discovery with 28 and 22 native shared links respectively. The new development skill is discoverable without growing those native sets. Fresh-clone and publication evidence is added when verified.
+- Consumer integrations merged: [Career #100](https://github.com/shigol/career/pull/100) and [app #235](https://github.com/shigol/eugene-s-job-hub/pull/235). Both pin toolkit 92d28b7929ff68570be06d4de4afa97138d32d41. Career keeps 28 native shared links plus its local procedures; the app keeps 22. Cross-group discovery finds the new development skill without adding native links.
+- Both consumers pass 30 shared Python tests, 13 consumer Python tests (including three startup cases), four browser-discovery tests and four merge-guard tests. Their GitHub Shared toolkit checks pass; app PR evidence also passes. Career's required prepush gate ran 43 checks in 189 seconds and exited successfully after reproducing two existing main failures. No new failure was reported. The local Python 3.11 executable is absent; the other baseline failure is the CV truth check. These are not presented as 43 passing checks.
+- Career CLAUDE.md is 3,576 bytes and AGENTS.md is 3,106 bytes, both within the existing 3.5 KB limits. Two unrelated pre-existing context overruns remain in decisions.md and the whole RUNBOOK. Permission/env values and existing hooks were compared against the prior settings and preserved.
+
+## Fresh checkout startup
+
+Each test began without an initialized submodule, invoked the exact new SessionStart command from settings with CLAUDE_PROJECT_DIR set, checked the exact committed toolkit revision, repeated startup, verified both agents' links, and retrieved the new skill through an unnamed task query. This tests the configured command, not invocation by a live Claude session.
+
+| Consumer | Cold startup | Warm startup | Pin/files/retrieval |
+| --- | ---: | ---: | --- |
+| App | 2.82 s | 0.67 s | PASS |
+| Career | 3.06 s | 0.70 s | PASS |
+
+The app used a fresh local consumer clone with normal remote toolkit initialization; Career used a fresh GitHub branch clone. Earlier attempts to clone Career's local partial repository failed because its promisor objects were unavailable to Git packing; the successful remote clone replaced that invalid test route. No mutable latest fetch was used. Times describe these runs, not a network latency guarantee.
 
 ## Live model testing
 
@@ -24,4 +37,4 @@ Claude's separate review on PR #3 reports SessionStart execution, unset settings
 
 ## Remaining proof
 
-Publish consumer integrations and test fresh clones at their exact recorded pins. Run the capped fresh-thread probes in actual Claude/Codex hosts, including direct source reads from unnamed requests and actual toolkit PR write access from Claude. Then measure cost before the remaining smoke matrix, add/edit propagation, task artifacts and baseline comparisons. Preserve explicit unsupported/unverified results where a runtime is unavailable.
+Consumer integrations and fresh-checkout startup are complete. Still run the capped fresh-thread probes inside actual Claude/Codex hosts, including policy/source reads from unnamed requests and actual toolkit PR write access from Claude. Then measure cost before the remaining smoke matrix, actual model use after add/edit propagation, task artifacts and baseline comparisons. Preserve explicit unsupported/unverified results where a runtime is unavailable. EVG-124 remains open for this proof; installation readiness is not full release verification.
