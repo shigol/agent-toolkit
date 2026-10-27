@@ -1,0 +1,182 @@
+{
+  "provenance": "Authored regression cases from reported failures, project task patterns and representative requests. Not held-out or live agent-selection/value evidence.",
+  "positive": [
+    {
+      "query": "write cover letter email",
+      "expected": "humanizer"
+    },
+    {
+      "query": "review PR for bugs",
+      "expected": "systematic-debugging"
+    },
+    {
+      "query": "debug why scoring job failed",
+      "expected": "systematic-debugging"
+    },
+    {
+      "query": "Polish the dashboard hierarchy and typography",
+      "expected": "impeccable"
+    },
+    {
+      "query": "This form and its buttons feel awkward on focus",
+      "expected": "emil-design-eng"
+    },
+    {
+      "query": "Check cards with long translated strings and missing content",
+      "expected": "break-ui"
+    },
+    {
+      "query": "Fix input zoom in mobile Safari",
+      "expected": "mobile-native"
+    },
+    {
+      "query": "Implement an iOS setting screen in SwiftUI",
+      "expected": "write-swift"
+    },
+    {
+      "query": "Our Sonner promise toast appears twice",
+      "expected": "ask-sonner"
+    },
+    {
+      "query": "Animate a popover opening smoothly",
+      "expected": "animate"
+    },
+    {
+      "query": "Add an interruptible swipe sheet in Expo",
+      "expected": "animate-expo"
+    },
+    {
+      "query": "Give this interface Apple-style Dynamic Island motion",
+      "expected": "apple-design"
+    },
+    {
+      "query": "Find where to add useful animation to the app",
+      "expected": "find-animation-opportunities"
+    },
+    {
+      "query": "Audit existing transitions for reduced motion",
+      "expected": "improve-animations"
+    },
+    {
+      "query": "Scrolling animation stutters and drops frames",
+      "expected": "animation-performance"
+    },
+    {
+      "query": "Explain easing terminology and spring damping names",
+      "expected": "animation-vocabulary"
+    },
+    {
+      "query": "Plan a product launch explainer video and storyboard",
+      "expected": "hyperframes"
+    },
+    {
+      "query": "Implement HTML scenes on a GSAP video timeline",
+      "expected": "hyperframes-core"
+    },
+    {
+      "query": "Render this HyperFrames composition to MP4",
+      "expected": "hyperframes-cli"
+    },
+    {
+      "query": "Create kinetic typography and lower thirds for a video",
+      "expected": "motion-graphics"
+    },
+    {
+      "query": "Choose footage and color grading for a video montage",
+      "expected": "general-video"
+    },
+    {
+      "query": "Rewrite this recruiter outreach in natural language",
+      "expected": "humanizer"
+    },
+    {
+      "query": "Remove stock AI writing from my CV without changing claims",
+      "expected": "humanizer"
+    },
+    {
+      "query": "Make this PR body sound like a person wrote it",
+      "expected": "humanizer"
+    },
+    {
+      "query": "Edit the email follow-up while keeping the facts",
+      "expected": "humanizer"
+    },
+    {
+      "query": "Rewrite this stakeholder update in clear prose",
+      "expected": "humanizer"
+    },
+    {
+      "query": "Write a PRD with acceptance criteria for saved searches",
+      "expected": "create-prd"
+    },
+    {
+      "query": "Rank roadmap features using RICE",
+      "expected": "prioritization-frameworks"
+    },
+    {
+      "query": "Estimate TAM SAM and SOM for the UK market",
+      "expected": "market-sizing"
+    },
+    {
+      "query": "Choose a North Star Metric and its input metrics",
+      "expected": "north-star-metric"
+    },
+    {
+      "query": "Set product positioning and strategic choices",
+      "expected": "product-strategy"
+    },
+    {
+      "query": "The nightly import lost half its rows; diagnose the cause",
+      "expected": "systematic-debugging"
+    },
+    {
+      "query": "A count is wrong after the last change; find the root cause",
+      "expected": "systematic-debugging"
+    },
+    {
+      "query": "Assess fresh test results before calling the release done",
+      "expected": "verification-before-completion"
+    },
+    {
+      "query": "Independently verify that the fix is ready to ship",
+      "expected": "verification-before-completion"
+    },
+    {
+      "query": "Do these passing tests justify claiming completion",
+      "expected": "verification-before-completion"
+    },
+    {
+      "query": "The drawer animation is janky on a phone",
+      "expected": "animation-performance"
+    },
+    {
+      "query": "Improve the timing of our existing transitions",
+      "expected": "improve-animations"
+    },
+    {
+      "query": "Prepare requirements and a problem statement for a feature",
+      "expected": "create-prd"
+    },
+    {
+      "query": "Calculate a bottom-up addressable market estimate",
+      "expected": "market-sizing"
+    },
+    {
+      "query": "Compare roadmap tradeoffs and prioritize the backlog",
+      "expected": "prioritization-frameworks"
+    },
+    {
+      "query": "Diagnose why the Python build failed",
+      "expected": "systematic-debugging"
+    }
+  ],
+  "abstain": [
+    "Thanks",
+    "Hello",
+    "Please continue",
+    "What is 2 plus 2?",
+    "What time is it?",
+    "and the of for with",
+    "authorship"
+  ]
+}

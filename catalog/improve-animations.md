@@ -6,6 +6,8 @@
 
 **Route:** Audit or improve existing motion
 
+**Synonyms:** animation audit; reduced motion; interaction timing; motion critique; transition review
+
 **Use when:** The requested deliverable is an app-wide motion audit or a roadmap of animation improvements.
 
 **Do not use when:** Applying fixes during the audit, a single-diff approval, or discovering only new places to animate.

@@ -6,6 +6,8 @@
 
 **Route:** Implement a HyperFrames composition
 
+**Synonyms:** HyperFrames composition; HTML scenes; GSAP timeline; video sequencing; composition code
+
 **Use when:** Writing or editing composition timing, clips, tracks, variables, media playback or sub-compositions.
 
 **Do not use when:** Choosing a creative workflow from scratch, general website HTML or standalone UI animation.

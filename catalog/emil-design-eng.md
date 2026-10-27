@@ -6,6 +6,8 @@
 
 **Route:** UI component behavior and feel
 
+**Synonyms:** component feel; interaction detail; buttons; dialogs; forms; focus; hover; keyboard
+
 **Use when:** An existing component feels awkward despite functioning correctly, or needs focused design-engineering review.
 
 **Do not use when:** A whole new art direction, unrelated backend review, video production or Swift language guidance.

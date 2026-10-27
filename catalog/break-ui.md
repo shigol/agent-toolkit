@@ -6,6 +6,8 @@
 
 **Route:** Stress-test UI with difficult content
 
+**Synonyms:** long strings; missing content; localization; overflow; layout stress test; extreme content
+
 **Use when:** A component needs testing with long or short names, missing values, large counts, translated text or empty collections.
 
 **Do not use when:** Backend load tests, security fuzzing, art-direction exploration or animation-only review.

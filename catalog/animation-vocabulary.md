@@ -6,6 +6,8 @@
 
 **Route:** Name or describe animation properties
 
+**Synonyms:** easing terminology; motion vocabulary; spring damping; animation names; curves
+
 **Use when:** The user asks what an observed effect is called or needs precise words to describe it.
 
 **Do not use when:** Implementing motion, auditing code, choosing a design system or troubleshooting performance.

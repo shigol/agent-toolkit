@@ -6,6 +6,8 @@
 
 **Route:** Estimate market size
 
+**Synonyms:** TAM; SAM; SOM; market size; addressable market; bottom-up revenue estimate
+
 **Use when:** Sizing an addressable market, comparing a market-entry opportunity or preparing sourced market estimates.
 
 **Do not use when:** General competitor research without a sizing question, internal usage analysis, or presenting assumptions as verified market facts.

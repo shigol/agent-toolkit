@@ -6,6 +6,8 @@
 
 **Route:** Render or inspect HyperFrames output
 
+**Synonyms:** HyperFrames render; preview; validate composition; export MP4; render diagnostics
+
 **Use when:** A HyperFrames task requires command syntax, build/render diagnostics, timeline inspection or output verification.
 
 **Do not use when:** Generic Node CLI problems, assuming a successful encode proves visual quality, or initiating cloud publication without the user requesting it.

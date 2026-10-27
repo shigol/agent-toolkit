@@ -6,6 +6,8 @@
 
 **Route:** Compare disposable UI prototypes
 
+**Synonyms:** UI variants; disposable prototype; compare interactions; parallel UI directions
+
 **Use when:** The user explicitly invokes prototype to explore several working answers to a component brief.
 
 **Do not use when:** A routine implementation, minor color variations, production changes before a variant is chosen, or an entire app redesign in one run.
