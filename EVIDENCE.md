@@ -28,11 +28,11 @@ The app used a fresh local consumer clone with normal remote toolkit initializat
 
 | Host | Career | App | Evidence |
 | --- | --- | --- | --- |
-| Codex GitHub runner, CLI 0.164.0 | Substantive activation PASS | Authentication blocked | Career run 40543821429 proves policy/search/source reads, fresh fixture checks and correct result; app seed path returned 401 |
+| Codex GitHub runner, CLI 0.164.0 | Substantive activation PASS | Native-only activation PASS | Career40543821429; app40558805552 after the credential update |
 | Codex nested CLI | Not run | Authentication blocked after filesystem fix | Scoped supported write access fixed local state initialization; provider then rejected authentication |
-| Actual Claude project thread | Account adapter discovered; substantive use pending | Account adapter discovered; substantive use pending | Claude's recorded remote_projects probes, account shared-skills installed after initial hook assumption failed |
+| Actual Claude project thread | Full source reads reported for debugging and outreach | Latest probe found an unread skill claim | Claude's recorded probes5–7; v6 tightens declarations and the nightly audit checks them |
 
-The original nested CLI failed to create local state; a scoped filesystem grant resolved that, then the provider rejected the configured login. The app's existing seed-only GitHub login also failed pre-inference with workspace routing discovery unauthorized (401), in run 40538443064. Career's existing maintained reader-auth cache was accepted. No credentials were transferred between repositories or routing/permission controls bypassed. CLI login status alone did not establish inference readiness.
+The original nested CLI failed to create local state; a scoped filesystem grant resolved that, then the provider rejected the configured login. The app's original seed-only login failed pre-inference with401 in run40538443064. After the user renewed that app credential, its rerun produced a real response. The old pasted-log fixture still failed its source-read requirement, so it was not treated as activation proof. The substantive native experiment below passed. Career's maintained reader-auth cache was accepted separately. No credentials were transferred between repositories or routing/permission controls bypassed. CLI login status alone did not establish inference readiness.
 
 ### Substantive Codex proof
 
@@ -42,6 +42,16 @@ Result: policy read, source read, fresh checks and factual assessment all PASS. 
 
 The preceding [Career control run 40540625134](https://github.com/shigol/career/actions/runs/40540625134) correctly judged pasted evidence and read the policy without invoking a specialist. Its harness marked behavior_failed only because it incorrectly required source invocation on a trivial task. That result demonstrates why abstention must remain valid, not that all ordinary questions should invoke a skill. Reported usage: input 83,343 (46,976 cached), output 486, reasoning_output 71; 22.17 s.
 
+### Native-first Codex proof
+
+[App run40558805552](https://github.com/shigol/eugene-s-job-hub/actions/runs/40558805552), project b2b53fe5d7b82fd81a81de937c8c10aa997fb8ba and toolkit f33795f58864925d8f560d383c4fedd1d2239181, used CLI0.164.0 at medium effort. The isolated fixture exposed the same30 native skills as the app, with no route table or policy pointer. The prompt named no skill. It required diagnosis, fresh checks, a completion assessment and a factual stakeholder release-note rewrite.
+
+Successful command output covered the full sources: systematic-debugging206/206 unique nonblank lines, verification-before-completion80/80 and humanizer234/234. The model ran the actual fixture checks (two tests, one intentional failure: four attempts versus three), passed the syntax-only build and correctly rejected completion. Its three declared skills matched the observed reads;27 unrelated source bodies stayed unopened. Native selection passed, so the paid routed comparison was skipped. The source-output grader and red-to-green fixture tests are in app draftPR244; its19 Python checks and PR checks passed.
+
+Elapsed model-task time17.97s. Provider usage: input115,286; cached79,744; output512; reasoning_output0. Uncached input is35,542 by subtraction. These are aggregate task totals, not isolated discovery overhead, peak context, monetary cost or a measured percentage of the weekly plan. The exact provider model identifier was not reported. Private artifact12758152679 retains the report, answer and trace. The release note was also reviewed against the fixture failure; it accurately says the release is blocked.
+
+Decision: Codex starts with native discovery and uses the shared routes/index/search when native coverage is absent or incomplete. Hosted Claude retains its bridge. This one compound task establishes feasibility for the tested runner; it does not prove selection across every task family, output-value improvement, global bootstrap or existing-skill edit propagation. Consumer header integration remains separate.
+
 ### Claude coordination
 
 Claude owns the account bootstrap and its real-work probes; Codex owns runner/auth diagnosis and library mechanics. Career SHARED.md records both agents' evidence. Claude corrected its original PR #3 claim after session-event inspection: only platform hooks ran in the tested remote_projects threads; repo SessionStart, UserPromptSubmit and PreToolUse hooks were skipped. Account skills were exposed, repo skills were not. The saved `shared-skills` account adapter was then discovered in both projects. Both agents agree that short pasted-output judgments may correctly abstain; next Claude probes use real repository work. These are Claude-reported host observations, not replayed here. Discovery is not yet proof of substantive invocation.
@@ -50,4 +60,4 @@ The original four-attempt schedule was adapted after startup/auth diagnostics, u
 
 ## Remaining proof
 
-Career Codex substantive policy/retrieval/source use is proven for one task. Still obtain Claude's coordinated real-work results, its actual toolkit PR write evidence, supported app Codex authentication, live use after an existing-skill edit and task-family coverage/baselines. Preserve unsupported/unverified cells. EVG-124 remains open; a successful pilot is not full release verification. The optional native_limit guard bounds future native count while keeping all registered entries searchable; this caps count, not token usage.
+Career policy/retrieval/source use and app native-only source use are proven for one substantive task each. Claude's real intake PR is merged and its later probes report Career source use; its app probe caught a false declaration. Remaining work includes consumer native-first integration, unattended brief submission, route adoption, fallback search, source-review controls, new-project bootstrap, live existing-skill edit propagation, and cross-agent coverage/value checks. Preserve unsupported/unverified cells. EVG-124 remains open; a successful pilot is not full release verification. Optional native_limit caps future native count while retaining index/search access; choose it from measured context needs and actual project selections.

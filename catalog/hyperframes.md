@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Plan or create a video
+
 **Use when:** The deliverable is a video, motion graphic, interactive deck or change to an existing HyperFrames project.
 
 **Do not use when:** Animating an interactive app button, general UI redesign, or ordinary research with no video/deck deliverable.

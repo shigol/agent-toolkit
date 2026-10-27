@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Choose a north-star product metric
+
 **Use when:** The product needs an explicit measure of delivered value and a coherent measurement framework.
 
 **Do not use when:** Calculating an already-defined metric, debugging analytics ingestion, market sizing or assuming correlation proves causality.

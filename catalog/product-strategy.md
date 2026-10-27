@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Set product strategy or direction
+
 **Use when:** Defining product direction, positioning, target segments, growth approach, capabilities or defensibility.
 
 **Do not use when:** A single implementation ticket, superficial prose polishing or an isolated market-size calculation.

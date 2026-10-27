@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** UI design or polish
+
 **Use when:** A screen needs better hierarchy, layout, typography, accessibility, onboarding or overall visual quality.
 
 **Do not use when:** Backend-only changes, factual research, video production, or a narrow frame-rate diagnosis.

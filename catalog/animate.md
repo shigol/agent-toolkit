@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Build interface motion
+
 **Use when:** A specific component needs a transition, entrance, feedback animation or gesture-related motion implemented.
 
 **Do not use when:** Video export, React Native animation, naming an effect, or a request only to audit an entire codebase.

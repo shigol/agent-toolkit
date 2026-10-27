@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Mobile web interactions and quirks
+
 **Use when:** A web app has sticky hover, tap flashes, viewport/keyboard problems, input zoom, scroll conflicts or safe-area issues.
 
 **Do not use when:** React Native development, Swift programming, motion-graphics export or general desktop visual direction.

@@ -4,6 +4,8 @@
 
 **Invocation:** explicit-only
 
+**Route:** Choose a UI component library
+
 **Use when:** The user explicitly invokes pick-ui-library to choose a dependency for a concrete UI task.
 
 **Do not use when:** Automatically choosing dependencies during ordinary coding, replacing a working library without a request, or backend package selection.

@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Toast notification behavior
+
 **Use when:** A project uses or explicitly intends to use Sonner, and needs Toaster setup, toast behavior, styling or troubleshooting.
 
 **Do not use when:** Notifications in an unrelated library, choosing a whole UI stack, or a general product redesign.

@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Diagnose a bug, failed run or wrong result
+
 **Use when:** A test fails, a build, run or pipeline step breaks, output is wrong or missing, or behavior is unexpected, and the task is to diagnose or fix it. Also when an earlier fix did not work.
 
 **Do not use when:** Writing new features with no failure involved, UI or motion design, prose editing, product strategy, or only judging whether supplied results prove completion (use verification-before-completion).

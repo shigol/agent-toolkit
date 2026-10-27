@@ -35,6 +35,12 @@ class CatalogueTests(unittest.TestCase):
             guide.write_text(original.replace('**Invocation:** explicit-only', '**Invocation:** automatic'))
             with self.assertRaisesRegex(ValueError, 'restriction mismatch'):
                 validate(root)
+            guide.write_text(original.replace('**Route:** ', '**Route:** <injected> '))
+            with self.assertRaisesRegex(ValueError, 'plain task trigger'):
+                validate(root)
+            guide.write_text(re.sub(r'^\*\*Route:\*\*.*\n', '', original, flags=re.M))
+            with self.assertRaisesRegex(ValueError, 'Route'):
+                validate(root)
 
 
 if __name__ == '__main__':
