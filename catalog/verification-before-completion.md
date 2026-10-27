@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Write or run tests; finish code; claim done, fixed or passing
+
 **Use when:** A development task reaches its verification or completion-report phase, or the user asks whether existing results justify a success claim.
 
 **Do not use when:** General prose editing, initial feature design, choosing a product strategy, or treating a statement by another agent as proof.

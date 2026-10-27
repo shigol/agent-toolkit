@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Fix animation jank or performance
+
 **Use when:** Motion stutters, drops frames, triggers expensive layout/paint work, or competes with React/main-thread work.
 
 **Do not use when:** Choosing a visual direction, selecting a pleasant easing curve without a performance issue, or diagnosing native RN threads.

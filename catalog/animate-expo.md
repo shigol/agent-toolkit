@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Animate an Expo app
+
 **Use when:** An actual React Native or Expo app needs a sheet, gesture handoff, screen transition, haptic feedback or animation-thread fix.
 
 **Do not use when:** A website viewed on a phone, Swift-only implementation, or rendered video production.

@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Implement a HyperFrames composition
+
 **Use when:** Writing or editing composition timing, clips, tracks, variables, media playback or sub-compositions.
 
 **Do not use when:** Choosing a creative workflow from scratch, general website HTML or standalone UI animation.

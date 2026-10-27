@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Stress-test UI with difficult content
+
 **Use when:** A component needs testing with long or short names, missing values, large counts, translated text or empty collections.
 
 **Do not use when:** Backend load tests, security fuzzing, art-direction exploration or animation-only review.

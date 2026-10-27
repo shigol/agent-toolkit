@@ -4,6 +4,8 @@
 
 **Invocation:** explicit-only
 
+**Route:** Review motion in a supplied recording
+
 **Use when:** The user explicitly invokes review-animations for a focused animation change or diff.
 
 **Do not use when:** General code review, feature implementation, backend defects or silently inserting a mandatory review into every task.

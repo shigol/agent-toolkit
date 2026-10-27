@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Write product requirements
+
 **Use when:** The user needs a PRD, feature specification or review of an existing requirements document.
 
 **Do not use when:** A routine bug fix, implementation already specified, a whole-company strategy or general research with no requirements deliverable.

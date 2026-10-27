@@ -9,7 +9,7 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-FIELDS = ('Purpose', 'Invocation', 'Use when', 'Do not use when',
+FIELDS = ('Purpose', 'Invocation', 'Route', 'Use when', 'Do not use when',
           'Overlaps and default', 'Requirements', 'Expected output',
           'Positive example', 'Negative example', 'Source')
 STOP = set('a an and are as at be build by can code create diagnose do existing find fix for from give help how i implement improve in into inspect is it make me my of on or our please project refine review some task that the their then these this to troubleshoot us use using want we with work you your'.split())
@@ -47,6 +47,8 @@ def catalogue(root=ROOT):
         if any(root.resolve() not in p.resolve().parents or p.is_symlink() for p in (guide, source)):
             raise ValueError(f'{name}: source and guide must stay inside the toolkit')
         values = fields(guide.read_text())
+        if len(values['Route']) > 140 or any(c in values['Route'] for c in '<>`|[]'):
+            raise ValueError(f'{name}: Route must be a plain task trigger of at most 140 characters')
         if values['Source'] != f"[Pinned SKILL.md](../{skill['path']}/SKILL.md)":
             raise ValueError(f'{name}: incorrect source link')
         body = source.read_text()

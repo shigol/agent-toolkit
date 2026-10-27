@@ -100,6 +100,8 @@ def install(project, agents):
     links = list(destinations(project, agents, {**data, 'skills': selected}))
     # Check all parent paths before touching any link, including an empty selection.
     all_links = list(destinations(project, agents, data))
+    from routes import plan_updates, write_updates
+    route_updates = plan_updates(ROOT, project, selected, agents, existing_only=True)
     # Preflight every destination before making any changes.
     for target, source in links:
         if os.path.lexists(target):
@@ -115,10 +117,11 @@ def install(project, agents):
         target.parent.mkdir(parents=True, exist_ok=True)
         if not os.path.lexists(target):
             target.symlink_to(os.path.relpath(source, target.parent), target_is_directory=True)
+    write_updates(route_updates)
     verify(project, agents)
 
 
-def verify(project, agents):
+def verify(project, agents, check_routes=True):
     data = verify_sources()
     selected = selection(project, data)
     for target, source in destinations(project, agents, {**data, 'skills': selected}):
@@ -128,6 +131,9 @@ def verify(project, agents):
     for target, source in destinations(project, agents, data):
         if target.name not in names and target.is_symlink() and target.resolve() == source.resolve():
             raise RuntimeError(f'Unselected toolkit link remains; rerun install: {target}')
+    from routes import plan_updates
+    if check_routes and plan_updates(ROOT, project, selected, agents, existing_only=True):
+        raise RuntimeError('Stale route block; run emit-routes after reviewing catalogue changes')
     print(f'PASS: {len(selected)} selected skill files installed for {", ".join(agents)} in {project}')
     for package in data['packages']:
         print(f'  {package["name"]}: {package["commit"]}')
@@ -150,6 +156,18 @@ def status(project, agents):
     print(json.dumps(result, indent=2))
     if missing:
         raise RuntimeError('Some selected skills are missing; run project setup')
+
+
+def emit_routes(project, agents, check=False):
+    from routes import plan_updates, write_updates
+    selected = selection(project, verify_sources())
+    updates = plan_updates(ROOT, project, selected, agents)
+    verify(project, agents, check_routes=False)
+    if check and updates:
+        raise RuntimeError('Missing or stale route block: ' + ', '.join(str(path) for path, _ in updates))
+    if not check:
+        write_updates(updates)
+    print(f'PASS: {len(selected)} skill routes {"checked" if check else "generated"} for {", ".join(agents)}')
 
 
 def engine_details():
@@ -253,10 +271,13 @@ def verify_runtime(project=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['install', 'verify', 'status', 'verify-sources', 'setup-runtime', 'verify-runtime'])
+    parser.add_argument('command', choices=['install', 'verify', 'status', 'emit-routes', 'verify-sources', 'setup-runtime', 'verify-runtime'])
     parser.add_argument('--project', type=Path)
     parser.add_argument('--agents', nargs='+', choices=['codex', 'claude'], default=['codex', 'claude'])
+    parser.add_argument('--check', action='store_true', help='With emit-routes, fail on missing/stale blocks without changing files')
     args = parser.parse_args()
+    if args.check and args.command != 'emit-routes':
+        parser.error('--check is only valid with emit-routes')
     if args.project and not args.project.is_dir():
         parser.error('--project must name an existing project directory')
     if args.command == 'verify-sources':
@@ -273,7 +294,10 @@ def main():
         if not args.project or not args.project.is_dir():
             parser.error('--project must name an existing project directory')
         project = args.project.resolve()
-        {'install': install, 'verify': verify, 'status': status}[args.command](project, args.agents)
+        if args.command == 'emit-routes':
+            emit_routes(project, args.agents, check=args.check)
+        else:
+            {'install': install, 'verify': verify, 'status': status}[args.command](project, args.agents)
 
 
 if __name__ == '__main__':

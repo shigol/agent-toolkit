@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Apple-style interface motion
+
 **Use when:** The task specifically concerns direct manipulation, velocity handoff, interruptible springs, gestures or Apple-style materials and interaction behavior.
 
 **Do not use when:** Making every project look like Apple, generic UI redesign, or treating this as a native Swift programming guide.

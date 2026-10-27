@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Estimate market size
+
 **Use when:** Sizing an addressable market, comparing a market-entry opportunity or preparing sourced market estimates.
 
 **Do not use when:** General competitor research without a sizing question, internal usage analysis, or presenting assumptions as verified market facts.

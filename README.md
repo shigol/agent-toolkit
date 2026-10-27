@@ -18,7 +18,7 @@ Exact upstream commits, all vendored file hashes, skill names and paths are in `
 
 Read [USAGE.md](USAGE.md) for selection guidance. Project-specific UX and brand rules belong in each app's own PRODUCT.md, DESIGN.md and agent instructions.
 Every registered skill has a [selection guide](catalog/README.md). New skills require the same description and examples; catalogue admission checks run in CI. Track ongoing implementation and host verification in [WORKING-PLAN.md](WORKING-PLAN.md).
-Agents follow [SELECTION.md](SELECTION.md) for bounded task-based discovery and [INTAKE.md](INTAKE.md) when asked to add a source. Intake is triggered by the request to the agent; no background model service is installed. Search validates the whole registered catalogue and reaches unlinked groups while honoring explicit exclusions. Publication and live readiness remain separate states.
+Agents follow [SELECTION.md](SELECTION.md): routes first, then the catalogue index, then search if still unsure. Use [INTAKE.md](INTAKE.md) when asked to add a source. Intake is triggered by the request to the agent; no background model service is installed. Search validates the whole registered catalogue and reaches unlinked groups while honoring explicit exclusions. Publication and live readiness remain separate states.
 
 ## Project selections
 
@@ -31,7 +31,7 @@ Commit `.agent-toolkit.json` in the consuming project. Both agents use the same 
 Groups are `design` (17 skills), `video` (five HyperFrames entry skills), `writing` (Humanizer), and `product` (five PM skills). These four are the original native selections; development is described below. Optional `include` and `exclude` arrays take exact skill names. No config preserves the earlier all-skills behavior; invalid config stops setup before changes.
 The `development` group contains verification-before-completion and systematic-debugging. Existing group choices control native links; the full catalogue remains searchable. Explicit `exclude` names are excluded from search as well. Include `development` only if native exposure is desired; it is not required for direct-file task selection.
 
-Set an optional positive integer `native_limit` to bound native catalogue growth, for example `{"schema":1,"groups":["design","video"],"native_limit":22}`. The first matching registered entries remain native; later additions remain searchable without new native links. Explicit `include` names take priority within the cap; exceeding it fails clearly rather than silently dropping requested names. Omitting the limit preserves older behavior. This caps skill count, not tokens; keep descriptions concise and measure actual host context separately. Consumer owners can opt in with limits of 28/22 to preserve the original native sets while allowing library growth.
+Set an optional positive integer `native_limit` to bound native catalogue growth, for example `{"schema":1,"groups":["design","video"],"native_limit":22}`. The first matching registered entries remain native; later additions remain available through the index and search without new native links. Explicit `include` names take priority within the cap; exceeding it fails clearly rather than silently dropping requested names. Omitting the limit preserves older behavior. This caps skill count, not tokens; keep descriptions concise and measure actual host context separately. Choose a limit from the project's current intended selection.
 
 Groups map to packages in `toolkit.lock.json`, so newly registered skills in a selected package join after the next checked update and setup. Unselected groups stay in the library without agent discovery links. Narrowing a selection removes only exact toolkit-owned symlinks, preserving local skills and foreign links. A selected name conflicting with a local skill stops installation. Project-specific operational skills stay in their project.
 
@@ -51,6 +51,15 @@ python3 .agent-toolkit/scripts/toolkit.py verify-runtime --project .
 ```
 
 Commit `.gitmodules`, the `.agent-toolkit` gitlink, and the generated `.agents/skills` and `.claude/skills` symlinks. The gitlink pins an exact toolkit commit. There is one skill copy inside the submodule, with relative links for both agents. An existing unrelated skill is never overwritten; conflicts stop the entire installation before links are created.
+
+Generate the routing instructions after installation:
+
+```bash
+python3 .agent-toolkit/scripts/toolkit.py emit-routes --project .
+python3 .agent-toolkit/scripts/toolkit.py emit-routes --project . --check
+```
+
+The command puts the same selected-skill block at the top of CLAUDE.md and AGENTS.md. Each guide's Route field supplies its task trigger; invocation restrictions are preserved. Groups, includes, exclusions and native_limit filter the block. Move project-only and account-only procedures outside the owned `skill-routes` markers before first adoption; that block is replaced on regeneration. Content outside it is preserved. Routine install regenerates existing blocks after a pin update, and verify rejects stale blocks. Existing projects without markers opt in through emit-routes. Add its `--check` invocation to consumer CI to require both blocks, including when they have been deleted. Installation does not prove native discovery or actual skill use in a running agent.
 
 The runtime step downloads Impeccable's pinned engine for this OS/architecture and verifies it against the vendored checksum. It installs beside the launcher so the launcher selects the pinned engine ahead of any older global installation. Downloaded binaries are ignored by Git. Taste requires Node.js 22+ and Chrome, Edge or Chromium; provision these in the cloud environment image or install them on the workstation. Set `CHROME_PATH` if the browser is outside standard locations. Runtime verification checks these prerequisites without installing system packages or altering browser profiles.
 

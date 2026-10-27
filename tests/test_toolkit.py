@@ -2,11 +2,13 @@ import importlib.util
 import json
 import contextlib
 import io
+import sys
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 
+sys.path.insert(0, str(Path(__file__).parents[1] / 'scripts'))
 spec = importlib.util.spec_from_file_location('toolkit', Path(__file__).parents[1] / 'scripts/toolkit.py')
 toolkit = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(toolkit)

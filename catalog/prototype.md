@@ -4,6 +4,8 @@
 
 **Invocation:** explicit-only
 
+**Route:** Compare disposable UI prototypes
+
 **Use when:** The user explicitly invokes prototype to explore several working answers to a component brief.
 
 **Do not use when:** A routine implementation, minor color variations, production changes before a variant is chosen, or an entire app redesign in one run.

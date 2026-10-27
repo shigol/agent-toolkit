@@ -4,6 +4,8 @@
 
 **Invocation:** automatic
 
+**Route:** Video production techniques
+
 **Use when:** The selected workflow is general-video: custom multi-scene pieces, montages, footage remixes, static loops/cards or a brief specifying the companion flow.
 
 **Do not use when:** Automatically taking every video request, a short motion-first logo sting, plain captions, or a specialized product-launch workflow.
