@@ -84,3 +84,9 @@ Compatible additions and edits to Markdown skill instructions and references can
 To add a skill, preserve its source and license under `vendor/`, register its unique name, directory and package in `toolkit.lock.json`, and include every vendored file's SHA-256 hash. The registered directory must contain `SKILL.md`. Installation creates links for every registered skill in both agents' folders, including skills added after a project first connected. An existing project-specific skill with the same name stops installation rather than being overwritten. Update the collection table and selection guidance when adding a collection.
 
 Automatic consumer updates follow commits published in this repository. Updating from each original author's repository remains a deliberate maintenance task. Adding a new project still requires opting it into the submodule, setup command and update workflows; existing unrelated projects are unaffected.
+
+### Managed Claude project containers
+
+Taste browser discovery includes `/opt/pw-browsers/chromium` as a fallback when it exists. Explicit browser overrides retain precedence. This documented compatibility patch applies to actual Taste browser launches as well as runtime verification; its upstream and patched hashes are recorded in the manifest and its diff is in `patches/`.
+
+Claude project threads may not expose filesystem skills through their Skill tool even when every file is installed. In that host, read the selected `SKILL.md` directly; a reload is not claimed to enable discovery. `status` reports file installation only.

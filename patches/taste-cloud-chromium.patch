@@ -1,0 +1,13 @@
+diff --git a/vendor/taste/skills/scripts/lib/cdp.mjs b/vendor/taste/skills/scripts/lib/cdp.mjs
+index 03ef99c..9bcd52d 100644
+--- a/vendor/taste/skills/scripts/lib/cdp.mjs
++++ b/vendor/taste/skills/scripts/lib/cdp.mjs
+@@ -32,6 +32,8 @@ export function findChrome() {
+     // Linux
+     '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium',
+     '/usr/bin/chromium-browser', '/snap/bin/chromium', '/usr/bin/microsoft-edge',
++    // Managed Claude project containers; settings may not reach the shell.
++    '/opt/pw-browsers/chromium',
+   ];
+   for (const c of candidates) if (c && existsSync(c)) return c;
+   return null;
