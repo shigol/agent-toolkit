@@ -22,6 +22,7 @@ jobs:
       - name: Verify source integrity and selection behavior
         run: |
           python3 scripts/toolkit.py verify-sources
+          python3 scripts/skills.py check
           python3 -m unittest discover -s tests -v
           node --test tests/browser-discovery.test.mjs
       - name: Verify the existing design runtime

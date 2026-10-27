@@ -12,11 +12,13 @@ Shared, versioned design, video, writing and product skills for Eugene's project
 | [HyperFrames](https://github.com/heygen-com/hyperframes) | 5 | Local motion graphics and video creation |
 | [Humanizer](https://github.com/blader/humanizer) | 1 | Editing prose |
 | [PM Skills](https://github.com/phuryn/pm-skills) | 5 | Strategy, metrics, prioritization, PRDs and market sizing |
+| [Superpowers](https://github.com/obra/superpowers) | 1 | Evidence before development completion claims |
 
 Exact upstream commits, all vendored file hashes, skill names and paths are in `toolkit.lock.json`. Full supporting files are included. Upstream licenses and notices are preserved beside each collection under `vendor/`; they govern those files. The POSIX Impeccable launcher has its executable bit set for direct invocation; file contents are unchanged. Toolkit-owned scripts and docs are maintained in this public repository; no license grant is implied for those files.
 
 Read [USAGE.md](USAGE.md) for selection guidance. Project-specific UX and brand rules belong in each app's own PRODUCT.md, DESIGN.md and agent instructions.
 Every registered skill has a [selection guide](catalog/README.md). New skills require the same description and examples; catalogue admission checks run in CI. Track ongoing implementation and host verification in [WORKING-PLAN.md](WORKING-PLAN.md).
+Agents follow [SELECTION.md](SELECTION.md) for bounded task-based discovery and [INTAKE.md](INTAKE.md) when asked to add a source. Intake is triggered by the request to the agent; no background model service is installed. Search validates the whole registered catalogue and reaches unlinked groups while honoring explicit exclusions. Publication and live readiness remain separate states.
 
 ## Project selections
 
@@ -26,7 +28,8 @@ Commit `.agent-toolkit.json` in the consuming project. Both agents use the same 
 {"schema": 1, "groups": ["design", "video"]}
 ```
 
-Groups are `design` (17 skills), `video` (five HyperFrames entry skills), `writing` (Humanizer), and `product` (five PM skills). Select all four for the full registered library. Optional `include` and `exclude` arrays take exact skill names. No config preserves the earlier all-skills behavior; invalid config stops setup before changes.
+Groups are `design` (17 skills), `video` (five HyperFrames entry skills), `writing` (Humanizer), and `product` (five PM skills). These four are the original native selections; development is described below. Optional `include` and `exclude` arrays take exact skill names. No config preserves the earlier all-skills behavior; invalid config stops setup before changes.
+The new `development` group contains verification-before-completion. Existing group choices control native links; the full catalogue remains searchable. Explicit `exclude` names are excluded from search as well. Include `development` only if native exposure is desired; it is not required for direct-file task selection.
 
 Groups map to packages in `toolkit.lock.json`, so newly registered skills in a selected package join after the next checked update and setup. Unselected groups stay in the library without agent discovery links. Narrowing a selection removes only exact toolkit-owned symlinks, preserving local skills and foreign links. A selected name conflicting with a local skill stops installation. Project-specific operational skills stay in their project.
 
