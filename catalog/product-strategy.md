@@ -6,6 +6,8 @@
 
 **Route:** Set product strategy or direction
 
+**Synonyms:** product strategy; positioning; strategic choices; vision; differentiation; winning aspiration
+
 **Use when:** Defining product direction, positioning, target segments, growth approach, capabilities or defensibility.
 
 **Do not use when:** A single implementation ticket, superficial prose polishing or an isolated market-size calculation.

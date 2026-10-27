@@ -6,6 +6,8 @@
 
 **Route:** Write Swift interface code
 
+**Synonyms:** Swift; SwiftUI; UIKit; native Apple interface; iOS component
+
 **Use when:** The affected code is Swift and the task involves implementation, migration, concurrency errors, hangs or ARC issues.
 
 **Do not use when:** React/TypeScript work, a website that merely looks native, or choosing a product visual style.

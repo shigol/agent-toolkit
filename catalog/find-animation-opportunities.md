@@ -6,6 +6,8 @@
 
 **Route:** Find where motion would help
 
+**Synonyms:** where to add motion; animation opportunities; interaction feedback; motion audit
+
 **Use when:** The user wants a short list of animation opportunities and reasons before implementation.
 
 **Do not use when:** Fixing existing animations, implementing changes immediately, or adding decoration everywhere.

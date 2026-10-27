@@ -26,7 +26,7 @@ class SearchTests(unittest.TestCase):
                 names = [r['name'] for r in skills.search(query)]
                 self.assertIn(expected, names)
         self.assertEqual(skills.search('PostgreSQL replication deadlock retry'), [])
-        self.assertEqual(skills.search('Diagnose database replication lag and retry deadlocks'), [])
+        self.assertIn('systematic-debugging', [r['name'] for r in skills.search('Diagnose database replication lag and retry deadlocks')])
         self.assertEqual(skills.search(''), [])
 
     def test_negative_examples_are_not_positive_matches(self):

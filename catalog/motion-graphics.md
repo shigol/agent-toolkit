@@ -6,6 +6,8 @@
 
 **Route:** Design motion graphics for video
 
+**Synonyms:** kinetic typography; lower thirds; title cards; animated diagram; motion graphics
+
 **Use when:** A logo sting, kinetic title, chart/stat hit, animated map or standalone overlay is the requested deliverable, typically under ten seconds.
 
 **Do not use when:** Narrated or longer multi-scene storytelling, simple captions over footage, static title cards or interactive application motion.

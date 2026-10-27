@@ -6,6 +6,8 @@
 
 **Route:** Write product requirements
 
+**Synonyms:** PRD; product requirements; acceptance criteria; feature specification; problem statement
+
 **Use when:** The user needs a PRD, feature specification or review of an existing requirements document.
 
 **Do not use when:** A routine bug fix, implementation already specified, a whole-company strategy or general research with no requirements deliverable.

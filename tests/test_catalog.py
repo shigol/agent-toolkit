@@ -41,6 +41,12 @@ class CatalogueTests(unittest.TestCase):
             guide.write_text(re.sub(r'^\*\*Route:\*\*.*\n', '', original, flags=re.M))
             with self.assertRaisesRegex(ValueError, 'Route'):
                 validate(root)
+            guide.write_text(re.sub(r'^\*\*Synonyms:\*\*.*\n', '', original, flags=re.M))
+            with self.assertRaisesRegex(ValueError, 'Synonyms'):
+                validate(root)
+            guide.write_text(original.replace('**Synonyms:** ', '**Synonyms:** <injected> '))
+            with self.assertRaisesRegex(ValueError, 'plain task terms'):
+                validate(root)
 
 
 if __name__ == '__main__':

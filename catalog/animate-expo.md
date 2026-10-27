@@ -6,6 +6,8 @@
 
 **Route:** Animate an Expo app
 
+**Synonyms:** Expo; React Native; Reanimated; gestures; haptics; swipe sheet; animation thread
+
 **Use when:** An actual React Native or Expo app needs a sheet, gesture handoff, screen transition, haptic feedback or animation-thread fix.
 
 **Do not use when:** A website viewed on a phone, Swift-only implementation, or rendered video production.

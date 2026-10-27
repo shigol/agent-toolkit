@@ -6,6 +6,8 @@
 
 **Route:** Write or edit text for a person
 
+**Synonyms:** cover letter; email; outreach; recruiter note; CV; rewrite; natural prose; AI writing; PR body
+
 **Use when:** Existing prose needs a natural-language editing pass for filler, inflated claims, repetitive structures or chatbot phrasing.
 
 **Do not use when:** Inventing evidence, disguising authorship, changing quotations, altering code, or treating every short factual reply as an editing project.

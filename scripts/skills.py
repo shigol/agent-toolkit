@@ -9,10 +9,11 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-FIELDS = ('Purpose', 'Invocation', 'Route', 'Use when', 'Do not use when',
+FIELDS = ('Purpose', 'Invocation', 'Route', 'Synonyms', 'Use when', 'Do not use when',
           'Overlaps and default', 'Requirements', 'Expected output',
           'Positive example', 'Negative example', 'Source')
-STOP = set('a an and are as at be build by can code create diagnose do existing find fix for from give help how i implement improve in into inspect is it make me my of on or our please project refine review some task that the their then these this to troubleshoot us use using want we with work you your'.split())
+STOP = set('a an and are as at be build by can code continue create do existing find fix for from give hello help how i implement improve in into inspect is it make me my of on or our please pr project refine review some task that the their then these this time to us use using want we what when where which who why with work write you your thanks thank'.split())
+MIN_SCORE = 3.0
 
 
 def fields(text):
@@ -49,6 +50,8 @@ def catalogue(root=ROOT):
         values = fields(guide.read_text())
         if len(values['Route']) > 140 or any(c in values['Route'] for c in '<>`|[]'):
             raise ValueError(f'{name}: Route must be a plain task trigger of at most 140 characters')
+        if len(values['Synonyms']) > 300 or any(c in values['Synonyms'] for c in '<>`|[]'):
+            raise ValueError(f'{name}: Synonyms must be plain task terms of at most 300 characters')
         if values['Source'] != f"[Pinned SKILL.md](../{skill['path']}/SKILL.md)":
             raise ValueError(f'{name}: incorrect source link')
         body = source.read_text()
@@ -89,8 +92,10 @@ def search(query, root=ROOT, project=None, limit=5, max_chars=4000, include_rest
     for entry in entries:
         f = entry['fields']
         # Exclusions, negative examples and references to other skills are never positive bait.
-        docs.append(Counter(tokens(entry['name'] + ' ' + f['Purpose'] + ' ' +
-                                  f['Use when'] + ' ' + f['Positive example'])))
+        doc = Counter(tokens(entry['name'] + ' ' + f['Purpose'] + ' ' +
+                             f['Route'] + ' ' + f['Use when'] + ' ' + f['Positive example']))
+        doc.update(tokens(f['Synonyms']) * 3)
+        docs.append(doc)
     query_tokens = set(tokens(query))
     frequency = Counter(word for doc in docs for word in doc)
     ranked = []
@@ -102,12 +107,14 @@ def search(query, root=ROOT, project=None, limit=5, max_chars=4000, include_rest
         if not matches:
             continue
         score = sum(math.log(1 + len(docs) / frequency[w]) * min(doc[w], 3) for w in matches)
+        if score < MIN_SCORE:
+            continue
         ranked.append((score, entry['name'], entry, matches))
     result = []
-    for _, _, entry, matches in sorted(ranked, key=lambda row: (-row[0], row[1]))[:limit]:
+    for score, _, entry, matches in sorted(ranked, key=lambda row: (-row[0], row[1]))[:limit]:
         candidate = {'name': entry['name'], 'purpose': entry['fields']['Purpose'][:260],
                      'invocation': entry['fields']['Invocation'], 'guide': entry['guide'],
-                     'source': entry['source'], 'matched_terms': matches[:10],
+                     'source': entry['source'], 'score': round(score, 3), 'matched_terms': matches[:10],
                      'readiness': 'not verified; inspect guide and task environment'}
         proposed = result + [candidate]
         if len(json.dumps(proposed, ensure_ascii=False)) > max_chars:

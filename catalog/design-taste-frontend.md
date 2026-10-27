@@ -6,6 +6,8 @@
 
 **Route:** Alternative visual direction
 
+**Synonyms:** alternative visual direction; art direction; distinctive frontend; premium interface
+
 **Use when:** The user explicitly chooses an alternative art direction or requests Taste. It supports both public pages and working app screens, with different workflows.
 
 **Do not use when:** Routine UI maintenance, a request that must preserve the existing direction, backend work or automatic restyling just because a page is mentioned.

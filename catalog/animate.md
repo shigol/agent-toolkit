@@ -6,6 +6,8 @@
 
 **Route:** Build interface motion
 
+**Synonyms:** popover opening; web transitions; CSS easing; enter exit; spring; stagger; interruption
+
 **Use when:** A specific component needs a transition, entrance, feedback animation or gesture-related motion implemented.
 
 **Do not use when:** Video export, React Native animation, naming an effect, or a request only to audit an entire codebase.

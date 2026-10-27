@@ -6,6 +6,8 @@
 
 **Route:** Prioritize product work
 
+**Synonyms:** prioritize; prioritization; RICE; ICE; MoSCoW; roadmap tradeoffs; rank features
+
 **Use when:** Choosing between RICE, ICE, opportunity scoring and other frameworks, or applying a method to supplied inputs.
 
 **Do not use when:** Inventing scores from absent evidence, diagnosing a production outage or replacing the entire product strategy.
