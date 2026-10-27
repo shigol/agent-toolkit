@@ -75,9 +75,19 @@ Keep a simple list of connected consumers and setup instructions. Never publish 
 
 Treat “Codex” and “Claude” as product families, not single runtimes. Identify the actual Codex host/model and actual Claude host/model Eugene uses. Record repository access, instruction loading, native skill discovery, shell/tool access and runtime support. Claude Code and hosted Claude project threads require separate evidence if both are claimed.
 
-Before building intake or sophisticated retrieval, run a harmless unnamed task in each supported host and confirm the bootstrap policy was loaded. A Skill tool returning Unknown skill may be handled by reading the chosen source directly only if the host can load the policy and access those files. If it cannot, fix the host connection first or label it unsupported. Do not ask Eugene to paste a router instruction into every new conversation as the completed solution.
+Before building intake or sophisticated retrieval, run a harmless unnamed task in a genuinely new thread in each supported host and confirm both installation and policy loading. Do not reuse a thread whose toolkit was initialized manually. Claude's live project-thread review on PR #3 reports that fresh clones leave submodules empty, SessionStart hooks execute, and the settings env block does not reach the shell. Treat these as dated host observations to reproduce, not universal guarantees about every Claude host.
 
-Keep project bootstrap text small and reference one shared policy. Never load this working plan or the full catalogue in ordinary consumer task startup. Existing native selections can remain during the pilot; migrate to a small stable default set only after measuring behavior. Growing native symlink lists must not become the implicit scaling strategy.
+Required consumer implementation: add a SessionStart hook that invokes the repository's skills-only setup, preserving existing hooks and settings. The app already supports `sh scripts/setup-agent-toolkit.sh --skills-only`; add the equivalent flag to Career's `tools/setup-agent-toolkit.sh`. Initialize only the pinned submodule and install/verify instruction links. Do not download Impeccable's engine, provision browsers, run video setup or depend on the settings env block during session startup.
+
+Existing Career SessionStart hooks have a 10-second timeout. Measure cold and warm skills-only setup; a cold network fetch is not guaranteed to fit. Set a bounded timeout supported by the actual host based on measurements, and provide a visible readiness failure plus one bounded task-time retry if installation times out or the network is unavailable. Do not silently report success, spawn an untracked background install, fetch latest, or block unrelated work indefinitely. Test an empty submodule, repeated startup, fetch failure and preservation of local skills. Reconcile any outdated consumer documentation claiming these hooks never run with the new host evidence when implementing the change.
+
+In this Claude project host the Skill tool reports Unknown skill for repo skills. Read the selected SKILL.md directly; native skill invocation is not the fallback being tested. If the host cannot load the policy or access files, fix the connection first or label it unsupported. Do not ask Eugene to paste a router instruction into every new conversation as the completed solution.
+
+The always-loaded consumer instruction is one short actionable pointer, for example: “Before substantial work, read .agent-toolkit/SELECTION.md; if missing, run the repo's skills-only setup.” The target shared file must exist before rollout. Career's CLAUDE.md has a 3.5 KB cap and is already near it; replace or compress an existing toolkit pointer rather than appending a policy. Run `python3 tools/context_budget.py` and keep the file within its existing cap. Put detailed policy on demand in the toolkit. Test that a fresh Claude thread actually follows the pointer for an unnamed task, instead of only checking its text or byte count.
+
+Never load this working plan or the full catalogue in ordinary consumer startup. Existing native selections can remain during the pilot; migrate to a small stable default set only after measuring behavior. Growing native symlink lists must not become the scaling strategy. Defer the proposed single Claude account bootstrap skill unless the pointer probe fails; its installation, cross-host availability and repository access need separate proof. It must not introduce a duplicate policy source or imply that account storage grants project access.
+
+Host feasibility also requires evidence that a Claude project thread can create the toolkit intake branch/PR using its authorized connection. A repository attachment or permission list is not a successful write. Use the first useful intake PR as the test, avoid throwaway writes, and do not silently assume another host will publish it. If writing is unavailable, report that intake can draft but cannot complete publication until the host integration is fixed.
 
 ### Retrieval and selection
 
@@ -87,7 +97,7 @@ Start with lexical retrieval over purpose, supported actions and positive scope.
 
 The agent decides using the requested action, output, platform and task phase. Apply hard restrictions first. Prefer a specific applicable workflow, use one primary design workflow, and add supporting skills only for distinct work. Use no skill for trivial or unmatched work. Search again when the task changes materially; do not repeat searches on every message.
 
-Initial budgets: at most five candidate summaries totaling 4,000 characters; read at most two candidate guides before choosing; one additional search when ambiguous. Keep bootstrap/policy text near 600 words combined. Measure actual tokens where the host exposes them; character caps are not token guarantees. Bound retrieval output and reference expansion, and record exceptions when a real task requires more context. Do not truncate source instructions in a way that removes restrictions.
+Initial budgets: at most five candidate summaries totaling 4,000 characters; read at most two candidate guides before choosing; one additional search when ambiguous. Always-loaded bootstrap remains one pointer line within each consumer's existing byte budget; the on-demand policy may be about 600 words. Measure actual tokens where the host exposes them; character caps are not token guarantees. Bound retrieval output and reference expansion, and record exceptions when a real task requires more context. Do not truncate source instructions in a way that removes restrictions.
 
 Only read the selected SKILL.md and needed references. Candidate results include identity, concise purpose, invocation/compatibility flags and exact guide/source paths. Missing dependencies are a readiness issue: explain them and use a compatible fallback where appropriate. Never bypass manual-only flags via direct-file reading. Update through toolkit maintenance rather than upstream self-refresh commands.
 
@@ -98,7 +108,7 @@ Milestones may be reordered when evidence supports it. Each checkpoint ends with
 | Milestone | Deliverable and acceptance | Current status |
 | --- | --- | --- |
 | A. Foundation | All current guides, admission validation and documented restrictions | 28 guides; checks pass locally; draft PR #3 |
-| B. Host feasibility and evaluation fixtures | Verify bootstrap in actual hosts; define task fixtures and no-router baseline | Pending; Claude CLI absent here |
+| B. Host feasibility and evaluation fixtures | Skills-only startup, within-budget pointer and direct source reads in new threads; prove Claude publication access; estimate/cap evaluation cost | Pending; live Claude review supplies partial evidence, not toolkit startup proof |
 | C. First vertical slice | One new capability goes through intake, selection and useful execution in a disposable consumer; then both real consumers | Pending |
 | D. Reusable workflow | Shared intake, bounded retrieval, idempotent lifecycle and concise host adapters | Pending |
 | E. Delivery integration | Tested add/edit propagation, fresh/existing setup, compatible automatic path and rollback | Pending |
@@ -141,9 +151,27 @@ Run in each actual supported host in both shigol/career and shigol/eugene-s-job-
 | Host/runtime limitation | Request a capability missing a prerequisite | Accurate readiness result and supported fallback |
 | New addition/edit | Task needing the newly admitted capability | Automatic discovery without naming it; repeat after update |
 
-Use independent prompts, not copies of catalogue examples. Keep a held-out set unused during tuning. First run a smoke test, then at least 20 prompts per host/project cell covering the categories and paraphrases. Repeat a representative subset in fresh chats; log all failures. Compare with the native-only baseline on the same tasks and model settings, including context/time overhead where measurable.
+Use independent prompts, not copies of catalogue examples, and keep a held-out set unused during tuning. Start with the capped smoke test below, not the full matrix. Compare representative tasks with the native-only baseline on the same model settings; record context/time overhead where measurable. The broader matrix is a later evidence gate, not an instruction to spend 80–160+ tasks immediately.
 
-Initial release target: at least 90% eligible appropriate choices per cell, all critical workflow cases passing, zero manual-only violations or local-file clobbers, and no observed task-quality regression against baseline. Twenty prompts are a smoke-scale sample, not statistical proof. Expand tests where failures concentrate; explain any threshold revision using evidence. Do not compensate for one failing host with averages from another.
+After budget review, the proposed broader target is at least 20 prompts and 90% eligible appropriate choices per cell, all critical workflow cases passing, zero manual-only violations or local-file clobbers, and no observed task-quality regression against baseline. This is still a small sample, not statistical proof. Do not turn the target into an unconditional task quota: expand only where justified and affordable, and explain changes using evidence. Report smoke-verified pilot support separately from broader verification; do not claim the larger matrix ran or compensate for one failing host with averages from another.
+
+### Evaluation cost and stop rules
+
+Claude's review cites Career rule 6 as requiring a cost estimate before work exceeding roughly 2% of the weekly plan and reports lean plan usage until 2026-11-03. Read the current consumer rule and check remaining usage before launching model-driven batches. The full matrix is a later batch, not the immediate execution schedule. Follow the actual repo rule and existing authorization; do not infer a new approval requirement beyond it.
+
+The first batch is capped at four fresh-thread feasibility probes. Record observable input/output tokens, elapsed time, model and plan-meter change if available. Use those measurements to price the next batch before running it. Do not invent dollar costs or convert tokens into weekly-plan percentages without provider evidence.
+
+| Stage | Maximum model-driven runs | Purpose |
+| --- | ---: | --- |
+| Feasibility | 4 | One new-thread bootstrap probe per host/project cell |
+| Baseline | 4 | One representative native-only comparison per cell |
+| Smoke | 20 | Five per cell: relevant task, abstention/restriction, phase change, newly added skill, edited skill |
+
+The initial campaign is at most 28 runs including feasibility and baseline, not 28 plus unlimited retries. Every attempted run counts; stop and fix a systematic failure before spending the rest. Keep tasks small and bounded; a representative motion/video routing probe may test selection/readiness only, and cannot count as verified video production. Where existing legitimate task evidence is comparable, reuse it with provenance rather than rerunning work merely to fill a quota.
+
+Illustrative planning envelope only: at 20,000 input and 2,000 output tokens per run, 28 runs would total about 560,000 input and 56,000 output tokens, excluding any unreported internal/provider usage. These assumed per-run amounts are not measurements or a promise of plan cost. After the four probes, replace them with observed numbers and a conservative estimate for artifact-producing tasks. Enforce a finite per-run output/turn/tool budget supported by the host; stop on a cap or repeated failure rather than silently extending it.
+
+Report the smoke results and measured cost before scheduling the broad matrix. Estimate added runs explicitly, including paired baselines, repeats and retries; use a capped next batch that fits remaining allowance. If usage cannot be measured, label cost unknown and do not launch the expensive matrix. Continue deterministic local checks and useful implementation independently. Never call a smoke pass full verification.
 
 Unsupported runtime cases can pass a readiness/abstention test, but do not count as successful execution. A video category with no actual render remains unverified for video production. Keep partial support visible rather than blocking useful text/code capabilities or declaring universal support.
 
@@ -153,7 +181,7 @@ Unsupported runtime cases can pass a readiness/abstention test, but do not count
 - Intake resilience: retries, repeated submissions, concurrent changes, incomplete registration and source/metadata drift leave the last working library intact.
 - Consumer delivery: newly added and edited skills, fresh/existing checkout, repeated setup, exact revision consistency, update failures and rollback; preserve foreign links and local skills.
 - Retrieval: unsupported/no-match requests, overlapping design skills, negative-example contamination, incompatible hosts, project exclusions and bounded candidate output.
-- Scale: at least 300 temporary entries with distractors and near-duplicates. Report candidate recall, output size, search time and startup growth relative to the real catalogue. Synthetic scale tests do not prove real agent accuracy.
+- Scale, after the vertical slice: at least 300 temporary entries with distractors and near-duplicates. This is a deterministic local test, not hundreds of model calls. Report candidate recall, output size, search time and startup growth relative to the real catalogue. Synthetic scale tests do not prove real agent accuracy. Faster-than-daily delivery can also wait until the slice works; document the existing cadence accurately.
 - Task lifecycle: new chat, existing chat after a supported refresh, phase changes and stale checkout detection.
 
 Keep useful local diagnostics: toolkit revision, selected skill, selection reason or abstention, runtime readiness and outcome. No external telemetry service is needed. Public evidence is generic; private prompts/artifacts remain in their owning project.
@@ -174,13 +202,16 @@ Keep maintenance simple: source updates rerun admission and affected evaluation 
 - Tracking: EVG-124 in Linear. Record milestone evidence, PRs and blockers; keep it open until the declared supported host matrix passes.
 - Verified locally on the foundation branch: 28 guides, 19 Python tests, four Node browser-discovery tests, 1,082 vendored hashes and git diff --check. These do not establish real agent selection.
 - Three sources set disable-model-invocation: true. Preserve their restrictions. Codex CLI exists here; Claude CLI does not. Neither executable presence nor absence establishes all remote-host capabilities.
+- Taste's Chromium fallback is already implemented at the recorded baseline via merged toolkit PR #2: vendor/taste/skills/scripts/lib/cdp.mjs checks /opt/pw-browsers/chromium without settings env. Four Node tests cover discovery and override precedence. Claude's review repeats the earlier missing-fallback diagnosis; do not duplicate the patch. A real browser launch in the actual Claude host remains to be verified separately.
 - Automatic intake, bounded search, bootstrap verification, consumer rollout and live behavioral comparison are pending. Reuse the guides; revise inaccuracies when source evidence requires it.
 
 ## 9. Next actions and change log
 
-1. Inspect the actual host integration and run the bootstrap feasibility probes.
+1. Implement skills-only startup hooks preserving existing settings, fit the one-line pointer within each consumer's budget, then run the four capped fresh-thread probes. Check actual Claude publication access during the useful intake slice.
 2. Define the smallest useful new-skill scenario and baseline task checks.
 3. Implement and demonstrate that vertical slice before generalizing retrieval/intake.
 4. Update milestone status and evidence here, then continue to full verification.
 
 2026-10-27 architecture revision: replaced the feature-first sequence with a mission-driven vertical slice; added explicit triggers/delivery states, host feasibility, separate eligibility/readiness, bounded context and baseline artifact evaluation. Kept existing guides, publication controls and freedom to change implementation.
+
+2026-10-27 Claude review incorporated: [PR #3 review](https://github.com/shigol/agent-toolkit/pull/3#issuecomment-6445360498). Accepted the three must-fix requirements: fresh-thread skills-only SessionStart setup, an always-loaded one-line pointer within Career's 3.5 KB cap, and a cost-calibrated capped smoke test before the broad matrix. Deferred account-skill bootstrap, synthetic scale and accelerated delivery until the vertical slice. Corrected the stale Chromium diagnosis against code; actual host runtime and toolkit write access remain unverified. These are implementation requirements, not claims that consumer fixes have shipped.
