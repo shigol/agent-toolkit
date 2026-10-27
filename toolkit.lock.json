@@ -42,6 +42,14 @@
         "pm-marketing-growth/skills/north-star-metric",
         "pm-product-strategy/skills/product-strategy"
       ]
+    },
+    {
+      "name": "verification-before-completion",
+      "repository": "https://github.com/obra/superpowers",
+      "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+      "source_path": "skills/verification-before-completion",
+      "license_path": "LICENSE",
+      "review_notes": "MIT source and single SKILL.md inspected; no external runtime required beyond project checks. Distinct completion-evidence workflow complements existing UI/video/PM skills. No automatic delegation or broader permissions. Actual host selection remains unverified."
     }
   ],
   "skills": [
@@ -184,6 +192,11 @@
       "name": "product-strategy",
       "path": "vendor/pm-skills/skills/product-strategy",
       "package": "pm-skills"
+    },
+    {
+      "name": "verification-before-completion",
+      "path": "vendor/verification-before-completion/skills",
+      "package": "verification-before-completion"
     }
   ],
   "files": {
@@ -1268,7 +1281,9 @@
     "vendor/taste/skills/scripts/lib/probe.mjs": "a5a17df891e438f55f196d8233601c3c79c873755f442c1ac5c3568de4e6bb48",
     "vendor/taste/skills/scripts/lib/rules.mjs": "8244aa9f53e77a59a562410310414e6b1a0f0cf002ce8f5aa792740b7f0149bf",
     "vendor/taste/skills/scripts/lint.mjs": "05f2fae2f56fc051b539cdbacb43a6f78fbbfb9644bb74aa11be472ff12dcaf5",
-    "vendor/taste/skills/scripts/scenes.mjs": "234ec582e2b841457c33033feeeba8535f9ac285495a74d08dc533a1566c90d5"
+    "vendor/taste/skills/scripts/scenes.mjs": "234ec582e2b841457c33033feeeba8535f9ac285495a74d08dc533a1566c90d5",
+    "vendor/verification-before-completion/LICENSE": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400",
+    "vendor/verification-before-completion/skills/SKILL.md": "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3"
   },
   "groups": {
     "design": [
@@ -1284,6 +1299,9 @@
     ],
     "product": [
       "pm-skills"
+    ],
+    "development": [
+      "verification-before-completion"
     ]
   },
   "patches": [

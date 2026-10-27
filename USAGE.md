@@ -1,6 +1,7 @@
 # Selecting skills
 
 The user's brief and the project's own requirements always take priority.
+Follow [SELECTION.md](SELECTION.md) for task-based routing and bounded search. When asked to add or update a source, use [INTAKE.md](INTAKE.md) to produce the guide and checked registration; the user need not author metadata.
 Read the [selection catalogue](catalog/README.md) to distinguish overlapping skills; open only relevant guides and their sources. The [working plan](WORKING-PLAN.md) tracks the automatic-selection rollout and actual test evidence.
 
 - Impeccable is the default for product UI planning, critique, redesign and refinement. Choose its task-oriented app guidance for the Job Hub. Run the current skill's context step and inspect the rendered output.
