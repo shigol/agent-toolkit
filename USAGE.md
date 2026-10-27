@@ -6,8 +6,13 @@ The user's brief and the project's own requirements always take priority.
 - Taste Skill is an explicitly selected alternative for exploring a different visual direction. Use its app-screen workflow for applications. Do not mix its full workflow with Impeccable in the same design pass.
 - Emil's design engineering and animation skills refine interaction behavior after a direction is selected. Use prototype for variants and break-ui for difficult content. Native mobile and Swift skills apply only to projects using those platforms.
 
+- HyperFrames supports local motion graphics and video tasks. Read required domain guides directly under `vendor/hyperframes/skills/` when they are not exposed as slash commands. Publishing, cloud render, lambda and feedback uploads require an explicit user request. Verify the CLI/render prerequisites for the actual video task; installing instructions does not install the CLI.
+- Humanizer supports prose editing without overriding project tone, facts or CV rules. The five PM skills support strategy, metrics, prioritization, PRDs and market sizing when relevant.
+
 Read the selected SKILL.md and its relevant references before applying it. Do not load every collection at once.
 Animation and illustration/video production are different capabilities. This toolkit does not include Remotion. The Job Hub's recorded motion work (EVG-89) used Charlie Hills' technique and custom CSS/React. Connected projects use their recorded toolkit version; the Job Hub's older codex/design paths are compatibility links to the shared skills.
+
+The project's `.agent-toolkit.json` controls which groups both agents discover. Keep project-specific procedures local. Backend-only work does not need design/video skills. Use `status --project PATH` to distinguish installed files from session discovery.
 
 ## Agent-specific behavior
 
@@ -18,3 +23,5 @@ Hooks are not installed automatically. Skill invocation and Impeccable's engine 
 ## Updates
 
 An upstream commit is not a toolkit release. After reviewing updated source, scripts and licenses, refresh the vendored collection and its entries in toolkit.lock.json, run tests and runtime checks, then commit the toolkit update. Each consuming project advances its submodule commit in a separate PR. Projects with the automatic-update integration can merge compatible checked text updates automatically; executable/setup changes and removals need review. See README.md for registration and update rules. Never fetch an unpinned latest version during routine project setup.
+
+Some upstream skills recommend their own refresh/install commands. In this pinned shared installation, update through the toolkit maintenance process instead; do not let those commands rewrite a consuming project's shared sources or install competing global copies. Preserve upstream files and licenses.

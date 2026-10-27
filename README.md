@@ -1,6 +1,6 @@
 # Agent toolkit
 
-Shared, versioned design skills for Eugene's projects, usable by Codex and Claude Code on macOS and Linux/cloud environments. GitHub is the durable source; a cloud machine's filesystem is not the only copy.
+Shared, versioned design, video, writing and product skills for Eugene's projects, usable by Codex and Claude Code on macOS and Linux/cloud environments. GitHub is the durable source; a cloud machine's filesystem is not the only copy.
 
 ## Included
 
@@ -9,10 +9,29 @@ Shared, versioned design skills for Eugene's projects, usable by Codex and Claud
 | [Impeccable](https://github.com/pbakaus/impeccable) | 1 | Product UI design, critique, refinement and checks |
 | [Taste Skill](https://github.com/Leonxlnx/taste-skill) | 1 | Alternative visual directions and rendered checks |
 | [Emil Kowalski](https://github.com/emilkowalski/skills) | 15 | Interaction design, animation, prototyping and mobile details |
+| [HyperFrames](https://github.com/heygen-com/hyperframes) | 5 | Local motion graphics and video creation |
+| [Humanizer](https://github.com/blader/humanizer) | 1 | Editing prose |
+| [PM Skills](https://github.com/phuryn/pm-skills) | 5 | Strategy, metrics, prioritization, PRDs and market sizing |
 
 Exact upstream commits, all vendored file hashes, skill names and paths are in `toolkit.lock.json`. Full supporting files are included. Upstream licenses and notices are preserved beside each collection under `vendor/`; they govern those files. The POSIX Impeccable launcher has its executable bit set for direct invocation; file contents are unchanged. Toolkit-owned scripts and docs are maintained in this public repository; no license grant is implied for those files.
 
 Read [USAGE.md](USAGE.md) for selection guidance. Project-specific UX and brand rules belong in each app's own PRODUCT.md, DESIGN.md and agent instructions.
+
+## Project selections
+
+Commit `.agent-toolkit.json` in the consuming project. Both agents use the same selection:
+
+```json
+{"schema": 1, "groups": ["design", "video"]}
+```
+
+Groups are `design` (17 skills), `video` (five HyperFrames entry skills), `writing` (Humanizer), and `product` (five PM skills). Select all four for the full registered library. Optional `include` and `exclude` arrays take exact skill names. No config preserves the earlier all-skills behavior; invalid config stops setup before changes.
+
+Groups map to packages in `toolkit.lock.json`, so newly registered skills in a selected package join after the next checked update and setup. Unselected groups stay in the library without agent discovery links. Narrowing a selection removes only exact toolkit-owned symlinks, preserving local skills and foreign links. A selected name conflicting with a local skill stops installation. Project-specific operational skills stay in their project.
+
+The complete upstream HyperFrames support tree is included so the five entry skills retain their relative references, including motion principles and data-in-motion guides. Read supporting domain guides directly without exposing every upstream skill in the agent catalogue. This does not install the HyperFrames CLI or certify its render runtime.
+
+`python3 .agent-toolkit/scripts/toolkit.py status --project .` lists selected skills and installed/missing files separately for both agents. It does not claim that the current session discovered them. Run setup in the same checkout the agent uses, then reload the session or read SKILL.md directly. Pass `--project .` to runtime commands as well: text-only selections do not need Impeccable or a browser.
 
 ## Add to a project once
 
@@ -21,8 +40,8 @@ Requires Git, Python 3.9+ and read access to GitHub. This repository is public; 
 ```bash
 git submodule add https://github.com/shigol/agent-toolkit.git .agent-toolkit
 python3 .agent-toolkit/scripts/toolkit.py install --project .
-python3 .agent-toolkit/scripts/toolkit.py setup-runtime
-python3 .agent-toolkit/scripts/toolkit.py verify-runtime
+python3 .agent-toolkit/scripts/toolkit.py setup-runtime --project .
+python3 .agent-toolkit/scripts/toolkit.py verify-runtime --project .
 ```
 
 Commit `.gitmodules`, the `.agent-toolkit` gitlink, and the generated `.agents/skills` and `.claude/skills` symlinks. The gitlink pins an exact toolkit commit. There is one skill copy inside the submodule, with relative links for both agents. An existing unrelated skill is never overwritten; conflicts stop the entire installation before links are created.
@@ -36,9 +55,9 @@ Clone the consuming project with submodules, or initialize the existing checkout
 ```bash
 git submodule update --init -- .agent-toolkit
 python3 .agent-toolkit/scripts/toolkit.py install --project .
-python3 .agent-toolkit/scripts/toolkit.py setup-runtime
+python3 .agent-toolkit/scripts/toolkit.py setup-runtime --project .
 python3 .agent-toolkit/scripts/toolkit.py verify --project .
-python3 .agent-toolkit/scripts/toolkit.py verify-runtime
+python3 .agent-toolkit/scripts/toolkit.py verify-runtime --project .
 ```
 
 Put those commands in the project's environment setup script. The toolkit is public and needs no GitHub read token. A private consuming project still needs its own GitHub access; signing in to a chat alone does not establish Git access. Launch the agent with its working directory inside the consuming project. Restart/reload the session if newly installed skills are not listed. In restricted hosted sessions, skill discovery may be controlled by the host; project instructions should point explicitly to the local skill files as a fallback.

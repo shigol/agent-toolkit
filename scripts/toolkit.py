@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -32,7 +33,41 @@ def verify_sources():
     names = [s['name'] for s in data['skills']]
     if len(names) != len(set(names)):
         raise RuntimeError('Duplicate skill names in manifest')
+    packages = {p['name'] for p in data['packages']}
+    for skill in data['skills']:
+        source = ROOT / skill['path']
+        if (not re.fullmatch(r'[a-z0-9][a-z0-9-]*', skill['name'])
+                or not skill['path'].startswith('vendor/')
+                or ROOT.resolve() not in source.resolve().parents
+                or skill['package'] not in packages
+                or skill['path'] + '/SKILL.md' not in data['files']):
+            raise RuntimeError('Invalid registered skill: ' + skill['name'])
+    for group, members in data.get('groups', {}).items():
+        if not re.fullmatch(r'[a-z0-9-]+', group) or not isinstance(members, list) or not set(members) <= packages:
+            raise RuntimeError('Invalid skill group: ' + group)
     return data
+
+
+def selection(project, data):
+    """Project selection is shared by both agents; no file preserves legacy all-skills behavior."""
+    config = project / '.agent-toolkit.json'
+    if not os.path.lexists(config):
+        return data['skills']
+    if config.is_symlink():
+        raise RuntimeError('Project selection must be a regular file')
+    settings = json.loads(config.read_text())
+    if not isinstance(settings, dict) or settings.get('schema') != 1 or set(settings) - {'schema', 'groups', 'include', 'exclude'}:
+        raise RuntimeError('Invalid project selection format')
+    groups = settings.get('groups')
+    include, exclude = settings.get('include', []), settings.get('exclude', [])
+    for values in (groups, include, exclude):
+        if not isinstance(values, list) or not all(isinstance(v, str) for v in values):
+            raise RuntimeError('Selection groups/include/exclude must be string lists')
+    available = {s['name'] for s in data['skills']}
+    if set(groups) - set(data.get('groups', {})) or (set(include) | set(exclude)) - available:
+        raise RuntimeError('Unknown group or skill in project selection')
+    packages = {p for g in groups for p in data['groups'][g]}
+    return [s for s in data['skills'] if (s['package'] in packages or s['name'] in include) and s['name'] not in exclude]
 
 
 def destinations(project, agents, data):
@@ -50,12 +85,21 @@ def destinations(project, agents, data):
 
 def install(project, agents):
     data = verify_sources()
-    links = list(destinations(project, agents, data))
+    selected = selection(project, data)
+    links = list(destinations(project, agents, {**data, 'skills': selected}))
+    # Check all parent paths before touching any link, including an empty selection.
+    all_links = list(destinations(project, agents, data))
     # Preflight every destination before making any changes.
     for target, source in links:
         if os.path.lexists(target):
             if not target.is_symlink() or target.resolve() != source.resolve():
                 raise RuntimeError(f'Existing skill conflict (left untouched): {target}')
+    selected_targets = {target for target, _ in links}
+    # Deselect only exact toolkit links. Never remove local copies or foreign links.
+    stale = [target for target, source in all_links if target not in selected_targets
+             and target.is_symlink() and target.resolve() == source.resolve()]
+    for target in stale:
+        target.unlink()
     for target, source in links:
         target.parent.mkdir(parents=True, exist_ok=True)
         if not os.path.lexists(target):
@@ -65,12 +109,35 @@ def install(project, agents):
 
 def verify(project, agents):
     data = verify_sources()
-    for target, source in destinations(project, agents, data):
-        if not target.is_symlink() or target.resolve() != source.resolve():
+    selected = selection(project, data)
+    for target, source in destinations(project, agents, {**data, 'skills': selected}):
+        if not target.is_symlink() or target.resolve() != source.resolve() or not (target / 'SKILL.md').is_file():
             raise RuntimeError(f'Skill missing or points to another version: {target}')
-    print(f'PASS: {len(data["skills"])} skills available to {", ".join(agents)} in {project}')
+    names = {s['name'] for s in selected}
+    for target, source in destinations(project, agents, data):
+        if target.name not in names and target.is_symlink() and target.resolve() == source.resolve():
+            raise RuntimeError(f'Unselected toolkit link remains; rerun install: {target}')
+    print(f'PASS: {len(selected)} selected skill files installed for {", ".join(agents)} in {project}')
     for package in data['packages']:
         print(f'  {package["name"]}: {package["commit"]}')
+
+
+def status(project, agents):
+    data = verify_sources()
+    selected = selection(project, data)
+    result = {'project': str(project), 'library_skills': len(data['skills']),
+              'selected': [s['name'] for s in selected], 'agents': {},
+              'session_discovery': 'Not verified. Reload the agent or read the selected SKILL.md directly.'}
+    missing = False
+    for agent in agents:
+        links = list(destinations(project, [agent], {**data, 'skills': selected}))
+        absent = [p.name for p, source in links if not p.is_symlink()
+                  or p.resolve() != source.resolve() or not (p / 'SKILL.md').is_file()]
+        result['agents'][agent] = {'installed': len(links) - len(absent), 'missing': absent}
+        missing = missing or bool(absent)
+    print(json.dumps(result, indent=2))
+    if missing:
+        raise RuntimeError('Some selected skills are missing; run project setup')
 
 
 def engine_details():
@@ -117,7 +184,7 @@ def setup_engine():
     print(f'Installed verified Impeccable engine {version}: {binary}')
 
 
-def verify_runtime():
+def verify_engine():
     verify_sources()
     binary, version, _, checksum = engine_details()
     if not binary.is_file() or digest(binary) != checksum:
@@ -132,6 +199,10 @@ def verify_runtime():
     launched = subprocess.check_output([str(launcher), 'engine-probe'], text=True, timeout=15).strip()
     if launched != result:
         raise RuntimeError('Impeccable launcher selected a different engine')
+    print(f'PASS: Impeccable engine {version} checksum and launcher')
+
+
+def verify_taste():
     node = shutil.which('node')
     if not node:
         raise RuntimeError('Taste Skill requires Node.js 22 or newer')
@@ -146,27 +217,51 @@ def verify_runtime():
         'const path = findChrome(); if (!path) process.exit(1); console.log(path);', module
     ], text=True, timeout=15).strip()
     subprocess.run([chrome, '--version'], check=True, timeout=15, stdout=subprocess.DEVNULL)
-    print(f'PASS: Impeccable engine {version}; Node.js {major}; browser {chrome}')
+    print(f'PASS: Taste runtime; Node.js {major}; browser {chrome}')
+
+
+
+def runtime_packages(project=None):
+    data = verify_sources()
+    skills = selection(project, data) if project else data['skills']
+    return {s['package'] for s in skills}
+
+
+def verify_runtime(project=None):
+    packages = runtime_packages(project)
+    if 'impeccable' in packages:
+        verify_engine()
+    if 'taste' in packages:
+        verify_taste()
+    if 'hyperframes' in packages:
+        print('NOTE: HyperFrames skill files installed; its CLI/render runtime is verified per video task.')
+    if not packages & {'impeccable', 'taste'}:
+        print('PASS: no design runtime required by this selection')
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['install', 'verify', 'verify-sources', 'setup-runtime', 'verify-runtime'])
+    parser.add_argument('command', choices=['install', 'verify', 'status', 'verify-sources', 'setup-runtime', 'verify-runtime'])
     parser.add_argument('--project', type=Path)
     parser.add_argument('--agents', nargs='+', choices=['codex', 'claude'], default=['codex', 'claude'])
     args = parser.parse_args()
+    if args.project and not args.project.is_dir():
+        parser.error('--project must name an existing project directory')
     if args.command == 'verify-sources':
         data = verify_sources()
         print(f'PASS: {len(data["files"])} vendored files match toolkit.lock.json')
     elif args.command == 'setup-runtime':
-        setup_engine()
+        if 'impeccable' in runtime_packages(args.project):
+            setup_engine()
+        else:
+            print('No Impeccable engine required by this selection')
     elif args.command == 'verify-runtime':
-        verify_runtime()
+        verify_runtime(args.project)
     else:
         if not args.project or not args.project.is_dir():
             parser.error('--project must name an existing project directory')
         project = args.project.resolve()
-        {'install': install, 'verify': verify}[args.command](project, args.agents)
+        {'install': install, 'verify': verify, 'status': status}[args.command](project, args.agents)
 
 
 if __name__ == '__main__':
