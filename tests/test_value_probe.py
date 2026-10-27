@@ -18,6 +18,7 @@ class ValueProbeTests(unittest.TestCase):
 
     def test_render_accepts_static_fixture_and_rejects_active_or_remote_content(self):
         self.assertTrue(value_probe.safe_static(value_probe.UI))
+        self.assertTrue(value_probe.safe_static('<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M0 0L10 10" stroke="currentColor"/></svg><div data-state="saved"></div>'))
         for body in ['<script>alert(1)</script>', '<button onclick="x()">', '<img src="https://example.invalid/x">', '<style>@import "x";</style>', '<style>body{background:url(x)}</style>', '<object data="data:text/html,anything">', '<meta http-equiv="refresh" content="0;url=file:///etc/hosts">', '<a href="&#106;avascript:alert(1)">x</a>']:
             self.assertFalse(value_probe.safe_static(body))
 

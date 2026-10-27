@@ -1,5 +1,6 @@
 """Run bounded, paired skill-value samples; export condition-free outputs for another agent."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -23,7 +24,7 @@ TASKS = {
 
 def safe_static(html):
     from html.parser import HTMLParser
-    tags = set('html head title meta style body main article section div span h1 h2 h3 h4 h5 h6 p button a ul ol li small strong em b i nav header footer details summary br hr'.split())
+    tags = set('html head title meta style body main article section div span h1 h2 h3 h4 h5 h6 p button a ul ol li small strong em b i nav header footer details summary br hr svg g path rect line circle polyline polygon defs symbol use'.split())
     def css_allowed(value):
         return not re.search(r'@import|url\s*\(|expression\s*\(|[\\\\]', value, re.I)
     class StaticHTML(HTMLParser):
@@ -34,11 +35,11 @@ def safe_static(html):
             self.in_style = tag == 'style'
             for name, value in attrs:
                 value = value or ''
-                permitted = name in {'id', 'class', 'role', 'title', 'type', 'disabled', 'tabindex', 'lang', 'charset', 'name', 'content', 'style', 'href'} or name.startswith('aria-')
+                permitted = name in {'id', 'class', 'role', 'title', 'type', 'disabled', 'tabindex', 'lang', 'charset', 'name', 'content', 'style', 'href', 'xmlns', 'viewbox', 'width', 'height', 'd', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'transform'} or name.startswith(('aria-', 'data-'))
                 self.valid &= permitted
                 if name == 'href':
                     self.valid &= not value or value.startswith('#')
-                if name == 'style':
+                if name in ('style', 'fill', 'stroke'):
                     self.valid &= css_allowed(value)
         def handle_startendtag(self, tag, attrs):
             self.handle_starttag(tag, attrs)
@@ -75,6 +76,7 @@ def sample(task_name, condition, folder):
     subprocess.run(['git', 'init', '--quiet', str(project)], check=True)
     for name, text in spec['files'].items():
         (project / name).write_text(text)
+    initial = {name: hashlib.sha256((project / name).read_bytes()).hexdigest() for name in spec['files']}
     manifest = json.loads((ROOT / 'toolkit.lock.json').read_text())
     skill = next(s for s in manifest['skills'] if s['name'] == spec['skill'])
     if condition == 'with':
@@ -104,16 +106,22 @@ def sample(task_name, condition, folder):
         except ValueError:
             pass
     reads = source_reads(events, ROOT)
-    body = (project / 'index.html').read_text() if task_name == 'ui' else ((folder / 'answer.md').read_text() if (folder / 'answer.md').exists() else '')
+    artifact_path = project / 'index.html' if task_name == 'ui' else folder / 'answer.md'
+    body = artifact_path.read_text(errors='replace') if artifact_path.is_file() else ''
     source_ok = reads[spec['skill']]['state'] == 'full' if condition == 'with' else all(s['state'] == 'unread' for s in reads.values())
     leak = bool(re.search(r'\b(?:humanizer|verification-before-completion|impeccable|skill|experimental|control arm)\b', body, re.I))
     report = {'exit_code': process.returncode, 'elapsed_seconds': round(time.monotonic() - started, 2),
               'source_evidence_valid': source_ok, 'blinding_leak': leak, 'reads': reads,
               'usage': next((e.get('usage') for e in reversed(events) if e.get('type') == 'turn.completed'), None),
               'valid': process.returncode == 0 and source_ok and bool(body) and not leak}
+    report['fixture_changed'] = any(not (project / name).is_file() or hashlib.sha256((project / name).read_bytes()).hexdigest() != digest for name, digest in initial.items())
+    if task_name == 'verification':
+        commands = [e.get('item', {}) for e in events if e.get('type') == 'item.completed' and e.get('item', {}).get('type') == 'command_execution']
+        report['observed_checks'] = {
+            'seeded_failure_observed': any('checks' in c.get('command', '') and 'Ran 2 tests' in c.get('aggregated_output', '') and '4 != 3' in c.get('aggregated_output', '') for c in commands),
+            'syntax_build_pass_observed': any('build.py' in c.get('command', '') and 'BUILD_OK' in c.get('aggregated_output', '') and c.get('exit_code') == 0 for c in commands)}
     if task_name == 'ui':
         report['static_html_allowed'] = safe_static(body)
-        report['valid'] &= report['static_html_allowed']
     (folder / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     failures = ' '.join(str(e.get('message', e.get('error', ''))) for e in events).lower()
     report['stop_for_auth_or_limit'] = any(s in failures for s in ('unauthorized', 'usage limit', 'limit reached', 'refresh_token_reused'))
@@ -161,8 +169,13 @@ def run(output, smoke=False):
             artifact = anonymous / ('index.html' if pair['task'] == 'ui' else 'artifact.md')
             artifact.write_text(body)
             if pair['task'] == 'ui' and report['valid']:
-                report['renders'] = render(artifact, anonymous)
-                report['valid'] &= all(v == 'rendered' for v in report['renders'].values())
+                if report['static_html_allowed']:
+                    report['renders'] = render(artifact, anonymous)
+                    report['valid'] &= all(v == 'rendered' for v in report['renders'].values())
+                else:
+                    report['renders'] = {'state': 'not rendered: candidate violates static-content contract'}
+            observations = {k: report[k] for k in ('fixture_changed', 'observed_checks', 'static_html_allowed', 'renders') if k in report}
+            (anonymous / 'observations.json').write_text(json.dumps(observations, indent=2) + '\n')
             (folder / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
             summaries.append({'pair': pair['pair'], 'slot': slot, **{k: v for k, v in report.items() if k != 'reads'}})
             if report['stop_for_auth_or_limit']:
@@ -180,7 +193,7 @@ def run(output, smoke=False):
                'model': 'Same CLI-default configuration; provider model identity not exposed',
                'judgement': 'Pending independent blind Claude judgement; no value claim'}
     (evidence / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
-    (blind / 'JUDGE.md').write_text('Compare only MANIFEST pairs marked valid_for_judging; mark others invalid. Compare A/B blind. Grade correctness and factual preservation first, then usefulness, clarity and constraint compliance. UI also needs both viewport renders. Return pair ID, A/B/tie/invalid and a concrete reason. Do not inspect evidence, condition map or source traces. Do not infer a benefit from presentation alone. Preserve all judgements before unblinding.\n')
+    (blind / 'JUDGE.md').write_text('Compare only MANIFEST pairs marked valid_for_judging; mark others invalid. Compare A/B blind. Grade correctness and factual preservation first, then usefulness, clarity and constraint compliance. UI also needs both viewport renders, except a candidate violating the static-content contract must lose on constraints and must not be executed. Use observations.json to cross-check claimed verification and prohibited fixture edits; candidate mistakes are not measurement failures. Return pair ID, A/B/tie/invalid and a concrete reason. Do not inspect evidence, condition map or source traces. Do not infer a benefit from presentation alone. Preserve all judgements before unblinding.\n')
     print(json.dumps({k: v for k, v in summary.items() if k != 'samples'}))
 
 
