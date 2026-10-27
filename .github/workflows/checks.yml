@@ -13,18 +13,32 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Report vendor-source review categories
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: python3 scripts/source_review.py --base "$BASE" --summary "$GITHUB_STEP_SUMMARY"
       - name: Verify source integrity and selection behavior
         run: |
           python3 scripts/toolkit.py verify-sources
           python3 scripts/skills.py check
           python3 -m unittest discover -s tests -v
           node --test tests/browser-discovery.test.mjs
+      - name: Verify one-command setup on a fresh repository
+        run: |
+          target=$(mktemp -d)
+          git -C "$target" init --quiet
+          python3 scripts/toolkit.py init-project "$target"
+          python3 "$target/.agent-toolkit/scripts/toolkit.py" emit-routes --project "$target" --agents claude --check
+          python3 scripts/toolkit.py bootstrap-global --codex-home "$RUNNER_TEMP/probe-codex-home"
       - name: Verify the existing design runtime
         env:
           CHROME_PATH: /usr/bin/google-chrome

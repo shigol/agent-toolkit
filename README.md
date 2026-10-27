@@ -18,6 +18,26 @@ Exact upstream commits, all vendored file hashes, skill names and paths are in `
 
 Read [USAGE.md](USAGE.md) for selection guidance. Project-specific UX and brand rules belong in each app's own PRODUCT.md, DESIGN.md and agent instructions.
 Every registered skill has a [selection guide](catalog/README.md). New skills require the same description and examples; catalogue admission checks run in CI. Track ongoing implementation and host verification in [WORKING-PLAN.md](WORKING-PLAN.md).
+
+## New projects and global Codex fallback
+
+From a committed toolkit checkout, initialize an existing Git repository with one command:
+
+```bash
+python3 scripts/toolkit.py init-project /absolute/path/to/project
+```
+
+This pins the exact current toolkit commit, installs relative source links for both agents, generates Claude's route block and a compact native-first Codex block, and adds setup plus daily checked-update integration. It does not download design runtimes, commit, push or deploy. Review and commit the generated files; Git's submodule command stages its own gitlink and .gitmodules entries. Existing project selections and instructions outside owned markers are preserved. A conflicting integration is reported before cloning; preserve and merge that project's configuration deliberately instead of overwriting it. Agents can complete that integration under the project's existing rules without asking the user to choose skills.
+
+Configure Codex's fallback for repositories that have no toolkit:
+
+```bash
+python3 scripts/toolkit.py bootstrap-global
+```
+
+It writes only its owned block in CODEX_HOME/AGENTS.md (default ~/.codex/AGENTS.md), preserving other instructions and credentials. Pass `--codex-home /path` for a runner or test home. Project-native skills and project pins take priority; otherwise Codex reads the shared source from this checkout. Keep that checkout available. It creates no global skill copies and does not assert that a running chat refreshed its native catalogue. Run the same bootstrap from the pinned library when provisioning another machine or the planned server.
+
+The checked GitHub templates are under integrations/github. Their trusted merge controller independently holds vendor, manifest and executable changes for independent review even if candidate validation passes. Central CI reports bounded source-review category counts, not source contents or an approval verdict. Shared-source or manifest changes require the other agent's recorded diff review before merge; upstream refresh is deliberate, on request or quarterly.
 Agents follow [SELECTION.md](SELECTION.md): Codex starts with native discovery; hosted Claude uses project routes. Missing coverage falls back to routes, the catalogue index, then search if still unsure. Use [INTAKE.md](INTAKE.md) when asked to add a source. Intake is triggered by the request to the agent; no background model service is installed. Search validates the whole registered catalogue and reaches unlinked groups while honoring explicit exclusions. Publication and live readiness remain separate states.
 
 Fallback search uses reviewed guide synonyms and a minimum score; stop-word-only requests return no candidates. CI requires at least90% top-three recall on42 labelled regression requests and checks trivial-task abstention. These authored retrieval cases are not independent live selection or output-value evidence; the cross-agent replay remains separate.
