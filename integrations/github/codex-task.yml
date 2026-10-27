@@ -9,7 +9,7 @@ on:
       mode:
         description: Task execution or bounded selection acceptance probe
         type: choice
-        options: [task, native, global]
+        options: [task, native, global, value-smoke, value]
         default: task
       request_issue:
         description: Optional issue or PR to receive status
@@ -61,11 +61,15 @@ jobs:
           codex login status > "$RUNNER_TEMP/task-auth-status.txt" 2>&1
           grep -qi ChatGPT "$RUNNER_TEMP/task-auth-status.txt" || { echo '::error::ChatGPT login required'; exit 1; }
       - name: Initialize the project and global skill fallback
+        env:
+          TASK_MODE: ${{ inputs.mode }}
         run: |
+          setup_mode=--skills-only
+          if [ "$TASK_MODE" = value ]; then setup_mode=; fi
           if [ -f tools/setup-agent-toolkit.sh ]; then
-            bash tools/setup-agent-toolkit.sh --skills-only
+            bash tools/setup-agent-toolkit.sh "$setup_mode"
           else
-            sh scripts/setup-agent-toolkit.sh --skills-only
+            sh scripts/setup-agent-toolkit.sh "$setup_mode"
           fi
           python3 .agent-toolkit/scripts/toolkit.py bootstrap-global
       - name: Execute one committed brief
@@ -74,6 +78,14 @@ jobs:
           TASK_MODE: ${{ inputs.mode }}
         run: |
           mkdir -p "$RUNNER_TEMP/codex-task"
+          if [ "$TASK_MODE" = value ] || [ "$TASK_MODE" = value-smoke ]; then
+            if [ "$TASK_MODE" = value-smoke ]; then
+              python3 .agent-toolkit/scripts/value_probe.py --smoke --output "$RUNNER_TEMP/codex-value"
+            else
+              python3 .agent-toolkit/scripts/value_probe.py --output "$RUNNER_TEMP/codex-value"
+            fi
+            exit 0
+          fi
           if [ "$TASK_MODE" = native ] || [ "$TASK_MODE" = global ]; then
             python3 .agent-toolkit/scripts/selection_probe.py --mode "$TASK_MODE" --output "$RUNNER_TEMP/codex-task/probe" --effort medium
             exit 0
@@ -89,6 +101,20 @@ jobs:
           if [ -s "$RUNNER_TEMP/codex-task/trace.jsonl" ] && [ -s "$RUNNER_TEMP/codex-task/answer.md" ]; then
             python3 .agent-toolkit/scripts/audit_skill_reads.py --trace "$RUNNER_TEMP/codex-task/trace.jsonl" --answer "$RUNNER_TEMP/codex-task/answer.md" --output "$RUNNER_TEMP/codex-task/skill-audit.json"
           fi
+      - name: Save blind value outputs
+        if: always() && (inputs.mode == 'value' || inputs.mode == 'value-smoke')
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-value-blind-${{ github.run_id }}
+          path: ${{ runner.temp }}/codex-value/blind/
+          retention-days: 14
+      - name: Save private value evidence and condition map
+        if: always() && (inputs.mode == 'value' || inputs.mode == 'value-smoke')
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-value-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/codex-value/evidence/
+          retention-days: 14
       - name: Save a review patch
         if: always()
         run: python3 .github/scripts/codex_task_patch.py "$RUNNER_TEMP/codex-task"
@@ -144,6 +170,7 @@ jobs:
             const number = Number(process.env.REQUEST_ISSUE);
             if (!Number.isSafeInteger(number) || number < 1) throw Error('Invalid request issue');
             const url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const outcome = process.env.RUN_RESULT === 'success' && process.env.SAVE_RESULT === 'success' ? 'done' : 'failed';
             const branch = process.env.RESULT_BRANCH ? ` Review branch: ${process.env.RESULT_BRANCH}.` : '';
             await github.rest.issues.createComment({...context.repo, issue_number: number,
-              body: `Codex run ${context.runId}, request ${process.env.REQUEST_ID}: worker=${process.env.RUN_RESULT}, save=${process.env.SAVE_RESULT}.${branch} Answer, source-read log and patch: ${url}. Nothing was merged or deployed.`});
+              body: `Codex run ${context.runId} ${outcome}: request ${process.env.REQUEST_ID}; worker=${process.env.RUN_RESULT}, save=${process.env.SAVE_RESULT}.${branch} Answer, source-read log and patch: ${url}. Nothing was merged or deployed.`});
