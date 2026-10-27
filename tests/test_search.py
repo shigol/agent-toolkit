@@ -20,6 +20,7 @@ class SearchTests(unittest.TestCase):
             ('Make this product update sound natural without changing claims', 'humanizer'),
             ('Estimate TAM SAM and SOM in the UK', 'market-sizing'),
             ('Animate a popover opening smoothly', 'animate'),
+            ('The nightly import dropped half its rows since Tuesday; find why and fix it', 'systematic-debugging'),
         ]:
             with self.subTest(query=query):
                 names = [r['name'] for r in skills.search(query)]
