@@ -55,3 +55,13 @@ python3 -m unittest discover -s tests -v
 `verify --project PATH` checks all vendored hashes and both agents' links. `verify-runtime` checks the pinned engine checksum/handshake, Node version and browser executable. Those checks establish installation readiness; they do not claim the current agent loaded a skill or that a design passed visual QA.
 
 To update a consuming project deliberately, fetch the toolkit submodule, check out the reviewed toolkit commit, rerun setup and checks, and commit the updated gitlink. Do not use `git submodule update --remote` in routine startup. Never put GitHub tokens or other secrets in a URL, script, manifest or commit.
+
+### Automatic updates in connected projects
+
+A consuming project can opt into daily Dependabot `gitsubmodule` update PRs for `.agent-toolkit`. Its own validation workflow checks the inventory, source hashes, repeatable installation, runtime, and new-skill propagation to both agents. A separate merge workflow can merge a checked Dependabot PR that changes only the gitlink. The project continues to record an exact version.
+
+Compatible additions and edits to Markdown skill instructions and references can merge automatically with their manifest updates. Installer/runtime changes, executable files, deleted files, moved or removed skills, conflicts with project-specific skills, and failed checks need review. Project branch protections and requested changes remain in force. Publication here does not silently alter an active checkout or chat: pull the consuming project, rerun its setup, and reload the agent when needed.
+
+To add a skill, preserve its source and license under `vendor/`, register its unique name, directory and package in `toolkit.lock.json`, and include every vendored file's SHA-256 hash. The registered directory must contain `SKILL.md`. Installation creates links for every registered skill in both agents' folders, including skills added after a project first connected. An existing project-specific skill with the same name stops installation rather than being overwritten. Update the collection table and selection guidance when adding a collection.
+
+Automatic consumer updates follow commits published in this repository. Updating from each original author's repository remains a deliberate maintenance task. Adding a new project still requires opting it into the submodule, setup command and update workflows; existing unrelated projects are unaffected.
