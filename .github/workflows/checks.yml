@@ -31,7 +31,8 @@ jobs:
           python3 scripts/toolkit.py verify-sources
           python3 scripts/skills.py check
           python3 -m unittest discover -s tests -v
-          node --test tests/browser-discovery.test.mjs
+          node tests/browser-discovery.test.mjs
+          node integrations/github/codex_request.test.cjs
       - name: Verify one-command setup on a fresh repository
         run: |
           target=$(mktemp -d)
