@@ -1263,7 +1263,7 @@
     "vendor/taste/skills/scripts/draw.mjs": "6c2047d207d2400d3b099956dfe2ac306203b614246e66bc8760212a7f797dbf",
     "vendor/taste/skills/scripts/inspect.mjs": "c0d7366f789b3f594787b37a525d1d7096104a499aac8a97ae04b405046cf02c",
     "vendor/taste/skills/scripts/lib/app-draw.mjs": "aa0802d341d19b53ec14ec21746e428be49a8ec3ed7b30253194105fc18a8df6",
-    "vendor/taste/skills/scripts/lib/cdp.mjs": "320fb75c6454a97b88458e5c33559a1188042aa0041bd5eff53455900236c88a",
+    "vendor/taste/skills/scripts/lib/cdp.mjs": "07fa6b991ab64414a8a3268ebbb2b45503b1c8c7dc4884c27153a7a12cfee8ad",
     "vendor/taste/skills/scripts/lib/inspection-files.mjs": "5635c0d5fbe0f5bd012e58534bcd554ff7440a4e5c724a61a61c476c7f42e918",
     "vendor/taste/skills/scripts/lib/probe.mjs": "a5a17df891e438f55f196d8233601c3c79c873755f442c1ac5c3568de4e6bb48",
     "vendor/taste/skills/scripts/lib/rules.mjs": "8244aa9f53e77a59a562410310414e6b1a0f0cf002ce8f5aa792740b7f0149bf",
@@ -1285,5 +1285,15 @@
     "product": [
       "pm-skills"
     ]
-  }
+  },
+  "patches": [
+    {
+      "package": "taste",
+      "path": "vendor/taste/skills/scripts/lib/cdp.mjs",
+      "patch": "patches/taste-cloud-chromium.patch",
+      "upstream_sha256": "320fb75c6454a97b88458e5c33559a1188042aa0041bd5eff53455900236c88a",
+      "patched_sha256": "07fa6b991ab64414a8a3268ebbb2b45503b1c8c7dc4884c27153a7a12cfee8ad",
+      "reason": "Discover /opt/pw-browsers/chromium in managed Claude project containers when shell browser overrides are unavailable."
+    }
+  ]
 }

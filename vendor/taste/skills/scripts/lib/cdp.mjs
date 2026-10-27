@@ -32,6 +32,8 @@ export function findChrome() {
     // Linux
     '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium',
     '/usr/bin/chromium-browser', '/snap/bin/chromium', '/usr/bin/microsoft-edge',
+    // Managed Claude project containers; settings may not reach the shell.
+    '/opt/pw-browsers/chromium',
   ];
   for (const c of candidates) if (c && existsSync(c)) return c;
   return null;
