@@ -27,19 +27,38 @@
           }
         ]
       },
-      "status": "initializing",
+      "status": "review",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
       "input_tokens": 0,
       "started_at": "2026-10-28T21:44:47.417Z",
       "expires_at": "2026-10-28T22:59:47.417Z",
-      "observed_at": "2026-10-28T21:46:13.065Z",
+      "observed_at": "2026-10-28T21:56:21.288Z",
       "start_due_at": "2026-10-28T21:49:47.417Z",
       "response_due_at": "2026-10-28T21:59:47.417Z",
-      "history": [],
+      "history": [
+        {
+          "run_id": 40774481832,
+          "revision": "89975b59cbb1c890e1fd0ad496c0d72eebfbd301",
+          "request_id": "continuity-6481439101-0-1",
+          "result": {
+            "run_id": 40774481832,
+            "request_id": "continuity-6481439101-0-1",
+            "worker": "success",
+            "save": "success",
+            "has_patch": false,
+            "held_count": 0,
+            "input_tokens": 0,
+            "usage_known": true,
+            "branch": "",
+            "checkpoint_status": "execution_complete"
+          },
+          "recorded_at": "2026-10-28T21:56:21.288Z"
+        }
+      ],
       "commands": [],
-      "message": "Workflow is active, but the actual execution step has not started.",
+      "message": "Saved work needs independent review. A successful worker is not accepted project completion.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -82,7 +101,10 @@
       "comment_id": 6481443796,
       "last_notice_at": "2026-10-28T21:44:47.417Z",
       "deadline_notices": [],
-      "reported_status": "initializing"
+      "reported_status": "initializing",
+      "worker_started_at": "2026-10-28T21:56:21.288Z",
+      "usage_unknown": false,
+      "branch": ""
     },
     {
       "schema": 1,
