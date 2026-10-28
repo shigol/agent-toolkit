@@ -16,7 +16,7 @@ Shared, versioned design, video, writing and product skills for Eugene's project
 
 Exact upstream commits, all vendored file hashes, skill names and paths are in `toolkit.lock.json`. Full supporting files are included. Upstream licenses and notices are preserved beside each collection under `vendor/`; they govern those files. The POSIX Impeccable launcher has its executable bit set for direct invocation; file contents are unchanged. Toolkit-owned scripts and docs are maintained in this public repository; no license grant is implied for those files.
 
-Read [USAGE.md](USAGE.md) for selection guidance. [CONTINUITY.md](CONTINUITY.md) distinguishes an active cloud job from an idle chat and defines the required handoff for unfinished work. Project-specific UX and brand rules belong in each app's own PRODUCT.md, DESIGN.md and agent instructions.
+Read [USAGE.md](USAGE.md) for selection guidance. Claude initiating a handoff follows the [Codex communication guide](docs/CLAUDE-TO-CODEX.md), including launch verification, follow-up and result recovery. [CONTINUITY.md](CONTINUITY.md) distinguishes an active cloud job from an idle chat and defines the required handoff for unfinished work. Project-specific UX and brand rules belong in each app's own PRODUCT.md, DESIGN.md and agent instructions.
 Every registered skill has a [selection guide](catalog/README.md). New skills require the same description and examples; catalogue admission checks run in CI. Track ongoing implementation and host verification in [WORKING-PLAN.md](WORKING-PLAN.md).
 
 ## New projects and global Codex fallback

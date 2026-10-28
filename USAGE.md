@@ -18,6 +18,8 @@ The project's `.agent-toolkit.json` controls which groups both agents discover. 
 
 ## Work after the chat ends
 
+Claude initiating a Codex request follows [CLAUDE-TO-CODEX.md](docs/CLAUDE-TO-CODEX.md). It gives the supported launch route, receipt checks, deadlines and recovery procedure.
+
 Skill selection does not keep an idle chat running. For authorized work that must continue, register a bounded committed plan through the supported repository integration and verify its actual cloud state; otherwise report paused. Read [CONTINUITY.md](CONTINUITY.md) for the handoff and host limits, and the [measured cloud evidence](docs/continuity-fixtures/RESULTS.md) for what has actually passed. A toolkit version update alone does not install new workflows into an existing project.
 
 If Claude's review or owned work is needed within the user's authorization, author a committed brief and use the configured private `/claude-wake` gateway instead of asking Eugene to relay it. [Routine setup](docs/CLAUDE-WAKE-SETUP.md) is separate from skills: it needs a UI-created routine token and starts a fresh session. Missing configuration or ambiguous submission is a visible hold, not permission to retry or claim work started.
