@@ -126,7 +126,7 @@ class RouteTests(unittest.TestCase):
             toolkit.install(self.project, ['codex', 'claude'])
             toolkit.emit_routes(self.project, ['codex', 'claude'])
             guide = root / 'catalog/humanizer.md'
-            guide.write_text(guide.read_text().replace('Write or edit text for a person', 'Prepare reader-facing prose'))
+            guide.write_text(guide.read_text().replace('Write/edit prose or report work (code too)', 'Prepare reader-facing prose'))
             with self.assertRaisesRegex(RuntimeError, 'Stale route'):
                 toolkit.verify(self.project, ['codex', 'claude'])
             toolkit.install(self.project, ['codex', 'claude'])
