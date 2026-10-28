@@ -80,7 +80,7 @@
         }
       ],
       "commands": [],
-      "message": "Dispatch reserved; waiting for a verified Actions run.",
+      "message": "Dispatch accepted; waiting to verify the actual run.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
