@@ -74,7 +74,10 @@
       "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40693638130",
       "run_revision": "e8cd74b8a98722cdab6aef1e61e04d9640651340",
       "request_id": "continuity-6469782853-0-1",
-      "dispatched_at": "2026-10-28T13:07:42.744Z"
+      "dispatched_at": "2026-10-28T13:07:42.744Z",
+      "comment_id": 6469789552,
+      "last_notice_at": "2026-10-28T13:07:47.029Z",
+      "reported_status": "queued"
     },
     {
       "schema": 1,
