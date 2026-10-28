@@ -338,11 +338,11 @@
         "observed_at": "2026-10-28T22:29:54.717Z"
       },
       "comment_id": 6482126770,
-      "last_notice_at": "2026-10-28T22:19:35.780Z",
+      "last_notice_at": "2026-10-28T22:31:39.166Z",
       "deadline_notices": [
         "start"
       ],
-      "reported_status": "dispatching",
+      "reported_status": "blocked",
       "run_id": 40780591244,
       "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40780591244",
       "run_revision": "97df0c26a4f74264214f74f644b7ef6457e98728",
