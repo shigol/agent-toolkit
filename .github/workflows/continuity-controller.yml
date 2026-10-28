@@ -46,4 +46,5 @@ jobs:
                 '.github/workflows/codex-continuity-watchdog.yml',
                 'integrations/github/codex_continuity.cjs', 'integrations/github/codex_task_run.py',
                 'integrations/github/codex_task_patch.py', 'integrations/github/codex_result.cjs',
-                'integrations/github/codex_request.cjs']});
+                'integrations/github/codex_request.cjs', '.github/workflows/codex-monitor.yml',
+                'integrations/github/codex_monitor.cjs']});

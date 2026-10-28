@@ -75,10 +75,10 @@ def init_project(project, root, source=PUBLIC_SOURCE):
     files = {'.github/scripts/' + name: (templates / name).read_bytes() for name in
              ('toolkit_update.py', 'test_toolkit_update.py', 'merge_toolkit.cjs', 'merge_toolkit.test.cjs', 'codex_request.cjs',
               'codex_request.test.cjs', 'codex_task_patch.py', 'codex_task_run.py', 'codex_result.cjs',
-              'codex_continuity.cjs', 'codex_continuity.test.cjs', 'codex_recover.cjs', 'claude_wake.cjs', 'claude_wake.test.cjs')}
+              'codex_continuity.cjs', 'codex_continuity.test.cjs', 'codex_monitor.cjs', 'codex_monitor.test.cjs', 'codex_recover.cjs', 'claude_wake.cjs', 'claude_wake.test.cjs')}
     files.update({'.github/workflows/' + name: (templates / name).read_bytes() for name in
                   ('agent-toolkit-check.yml', 'agent-toolkit-merge.yml', 'codex-request.yml', 'codex-task.yml',
-                   'codex-continuity.yml', 'codex-continuity-watchdog.yml', 'codex-recover.yml', 'claude-wake.yml')})
+                   'codex-continuity.yml', 'codex-continuity-watchdog.yml', 'codex-monitor.yml', 'codex-recover.yml', 'claude-wake.yml')})
     files['.github/dependabot.yml'] = (templates / 'dependabot.yml').read_bytes()
     files['tools/setup-agent-toolkit.sh'] = (templates / 'setup-agent-toolkit.sh').read_bytes()
     for name in ('AGENTS.md', 'CLAUDE.md', '.agent-toolkit.json', '.gitmodules'):

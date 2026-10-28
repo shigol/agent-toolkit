@@ -27,6 +27,9 @@ on:
       - .github/scripts/codex_task_run.py
       - .github/workflows/codex-request.yml
       - .github/workflows/codex-continuity.yml
+      - .github/workflows/codex-monitor.yml
+      - .github/scripts/codex_monitor.cjs
+      - .github/scripts/codex_monitor.test.cjs
       - .github/workflows/codex-continuity-watchdog.yml
       - .github/workflows/agent-toolkit-*.yml
       - scripts/setup-agent-toolkit.sh
@@ -58,6 +61,9 @@ on:
       - .github/scripts/codex_task_run.py
       - .github/workflows/codex-request.yml
       - .github/workflows/codex-continuity.yml
+      - .github/workflows/codex-monitor.yml
+      - .github/scripts/codex_monitor.cjs
+      - .github/scripts/codex_monitor.test.cjs
       - .github/workflows/codex-continuity-watchdog.yml
       - .github/workflows/agent-toolkit-*.yml
       - scripts/setup-agent-toolkit.sh
@@ -119,13 +125,14 @@ jobs:
           fi
       - name: Verify managed collaboration helpers before executing them
         run: |
-          for name in codex_request.cjs codex_request.test.cjs codex_continuity.cjs codex_continuity.test.cjs codex_task_run.py codex_task_patch.py codex_result.cjs codex_recover.cjs; do
+          for name in codex_request.cjs codex_request.test.cjs codex_continuity.cjs codex_continuity.test.cjs codex_monitor.cjs codex_monitor.test.cjs codex_task_run.py codex_task_patch.py codex_result.cjs codex_recover.cjs; do
             installed=".github/scripts/$name"
             pinned=".agent-toolkit/integrations/github/$name"
             test -f "$installed" && test ! -L "$installed" && test -f "$pinned" && cmp -s "$installed" "$pinned" || { echo '::error::Managed collaboration helper differs from the reviewed pin'; exit 1; }
           done
           node .github/scripts/codex_request.test.cjs
           node .github/scripts/codex_continuity.test.cjs
+          node .github/scripts/codex_monitor.test.cjs
       - name: Check whether a bot update can merge unattended
         continue-on-error: true
         if: github.event_name == 'pull_request'

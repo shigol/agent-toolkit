@@ -1,0 +1,39 @@
+name: Fixed no-model cloud monitor
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+  issues: write
+  pull-requests: write
+concurrency:
+  group: codex-continuity-monitor
+  cancel-in-progress: false
+jobs:
+  monitor:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: |
+            .github
+            integrations
+            docs
+            codex
+            tools
+      - name: Reconcile until idle or bounded handoff
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {monitor} = require('./integrations/github/codex_monitor.cjs');
+            await monitor({github, context, worker: 'continuity-fixture.yml',
+              contractPaths: ['.github/workflows/continuity-fixture.yml', '.github/workflows/continuity-controller.yml',
+                '.github/workflows/codex-continuity-watchdog.yml',
+                'integrations/github/codex_continuity.cjs', 'integrations/github/codex_task_run.py',
+                'integrations/github/codex_task_patch.py', 'integrations/github/codex_result.cjs',
+                'integrations/github/codex_request.cjs', '.github/workflows/codex-monitor.yml',
+                'integrations/github/codex_monitor.cjs']});
