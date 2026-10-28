@@ -132,19 +132,38 @@
           }
         ]
       },
-      "status": "dispatching",
+      "status": "blocked",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
       "input_tokens": 0,
       "started_at": "2026-10-28T21:44:56.126Z",
       "expires_at": "2026-10-28T22:59:56.126Z",
-      "observed_at": "2026-10-28T21:56:21.288Z",
+      "observed_at": "2026-10-28T21:56:55.946Z",
       "start_due_at": "2026-10-28T21:49:56.126Z",
       "response_due_at": "2026-10-28T21:59:56.126Z",
-      "history": [],
+      "history": [
+        {
+          "run_id": 40776034318,
+          "revision": "89975b59cbb1c890e1fd0ad496c0d72eebfbd301",
+          "request_id": "continuity-6481440564-0-1",
+          "result": {
+            "run_id": 40776034318,
+            "request_id": "continuity-6481440564-0-1",
+            "worker": "success",
+            "save": "failure",
+            "has_patch": true,
+            "held_count": 0,
+            "input_tokens": 0,
+            "usage_known": true,
+            "branch": "",
+            "checkpoint_status": "execution_complete"
+          },
+          "recorded_at": "2026-10-28T21:56:55.946Z"
+        }
+      ],
       "commands": [],
-      "message": "Dispatch accepted; waiting to verify the actual run.",
+      "message": "Inference completed, but delivery or a following validation failed. Inspect/recover its existing artifact with the result-recovery workflow; never rerun inference for transport repair.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -185,11 +204,15 @@
         "start"
       ],
       "reported_status": "dispatching",
-      "run_id": null,
-      "run_url": "",
-      "run_revision": null,
+      "run_id": 40776034318,
+      "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40776034318",
+      "run_revision": "89975b59cbb1c890e1fd0ad496c0d72eebfbd301",
       "request_id": "continuity-6481440564-0-1",
-      "dispatched_at": "2026-10-28T21:56:21.288Z"
+      "dispatched_at": "2026-10-28T21:56:21.288Z",
+      "worker_started_at": "2026-10-28T21:56:55.946Z",
+      "usage_unknown": false,
+      "branch": "",
+      "delivery_run": 40776034318
     }
   ],
   "watchdog_enabled": true
