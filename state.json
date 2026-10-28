@@ -33,17 +33,36 @@
         "path": "docs/continuity-fixtures/retry-plan.json",
         "sha256": "aa6968b31109b4c5b06be97feb5bd28284e491a60e8cc6c88292d1b6efb82dd8"
       },
-      "status": "queued",
+      "status": "dispatching",
       "step": 0,
-      "attempt": 1,
-      "total_runs": 1,
+      "attempt": 2,
+      "total_runs": 2,
       "input_tokens": 0,
       "started_at": "2026-10-28T13:07:42.744Z",
       "expires_at": "2026-10-28T13:37:42.744Z",
-      "observed_at": "2026-10-28T13:07:58.484Z",
-      "history": [],
+      "observed_at": "2026-10-28T13:08:15.132Z",
+      "history": [
+        {
+          "run_id": 40693638130,
+          "revision": "e8cd74b8a98722cdab6aef1e61e04d9640651340",
+          "request_id": "continuity-6469782853-0-1",
+          "result": {
+            "run_id": 40693638130,
+            "request_id": "continuity-6469782853-0-1",
+            "worker": "failure",
+            "save": "success",
+            "has_patch": false,
+            "held_count": 0,
+            "input_tokens": 0,
+            "usage_known": true,
+            "branch": "",
+            "checkpoint_status": "failed"
+          },
+          "recorded_at": "2026-10-28T13:08:15.132Z"
+        }
+      ],
       "commands": [],
-      "message": "Actions run verified queued; execution has not started.",
+      "message": "Dispatch reserved; waiting for a verified Actions run.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -70,14 +89,16 @@
           "sha256": "4ba5d7e6da38ffa0410cd39e8541661e8ee45d97803c9132b4deec7fccae57d2"
         }
       ],
-      "run_id": 40693638130,
-      "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40693638130",
-      "run_revision": "e8cd74b8a98722cdab6aef1e61e04d9640651340",
-      "request_id": "continuity-6469782853-0-1",
-      "dispatched_at": "2026-10-28T13:07:42.744Z",
+      "run_id": null,
+      "run_url": "",
+      "run_revision": null,
+      "request_id": "continuity-6469782853-0-2",
+      "dispatched_at": "2026-10-28T13:08:15.132Z",
       "comment_id": 6469789552,
       "last_notice_at": "2026-10-28T13:07:47.029Z",
-      "reported_status": "queued"
+      "reported_status": "queued",
+      "usage_unknown": false,
+      "branch": ""
     },
     {
       "schema": 1,
