@@ -33,7 +33,7 @@
         "path": "docs/continuity-fixtures/retry-plan.json",
         "sha256": "aa6968b31109b4c5b06be97feb5bd28284e491a60e8cc6c88292d1b6efb82dd8"
       },
-      "status": "review",
+      "status": "paused",
       "step": 1,
       "attempt": 1,
       "total_runs": 3,
@@ -97,8 +97,10 @@
           "recorded_at": "2026-10-28T13:09:19.103Z"
         }
       ],
-      "commands": [],
-      "message": "All planned executions ended. Final result acceptance is still required.",
+      "commands": [
+        "6470546639"
+      ],
+      "message": "Paused by a repository writer; no new work will start.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -131,8 +133,8 @@
       "request_id": "continuity-6469782853-1-1",
       "dispatched_at": "2026-10-28T13:08:48.821Z",
       "comment_id": 6469789552,
-      "last_notice_at": "2026-10-28T13:09:19.103Z",
-      "reported_status": "review",
+      "last_notice_at": "2026-10-28T13:36:36.081Z",
+      "reported_status": "paused",
       "usage_unknown": false,
       "branch": ""
     },
