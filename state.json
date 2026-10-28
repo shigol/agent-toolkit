@@ -33,7 +33,7 @@
         "path": "docs/continuity-fixtures/retry-plan.json",
         "sha256": "aa6968b31109b4c5b06be97feb5bd28284e491a60e8cc6c88292d1b6efb82dd8"
       },
-      "status": "queued",
+      "status": "paused",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
@@ -42,8 +42,10 @@
       "expires_at": "2026-10-28T13:08:22.229Z",
       "observed_at": "2026-10-28T12:38:27.339Z",
       "history": [],
-      "commands": [],
-      "message": "Actions run verified queued; execution has not started.",
+      "commands": [
+        "6469426785"
+      ],
+      "message": "Paused by a repository writer; no new work will start.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -74,7 +76,10 @@
       "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40689476228",
       "run_revision": "ab2fb8526d75ae592f76db156909f15f28317401",
       "request_id": "continuity-6469181811-0-1",
-      "dispatched_at": "2026-10-28T12:38:22.229Z"
+      "dispatched_at": "2026-10-28T12:38:22.229Z",
+      "comment_id": 6469430463,
+      "last_notice_at": "2026-10-28T12:38:27.339Z",
+      "reported_status": "paused"
     },
     {
       "schema": 1,
