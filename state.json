@@ -33,17 +33,17 @@
         "path": "docs/continuity-fixtures/retry-plan.json",
         "sha256": "aa6968b31109b4c5b06be97feb5bd28284e491a60e8cc6c88292d1b6efb82dd8"
       },
-      "status": "queued",
+      "status": "running",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
       "input_tokens": 0,
       "started_at": "2026-10-28T12:51:40.034Z",
       "expires_at": "2026-10-28T13:21:40.034Z",
-      "observed_at": "2026-10-28T12:51:45.343Z",
+      "observed_at": "2026-10-28T12:51:54.424Z",
       "history": [],
       "commands": [],
-      "message": "Actions run verified queued; execution has not started.",
+      "message": "Actions run verified active; this is not a completion claim.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
