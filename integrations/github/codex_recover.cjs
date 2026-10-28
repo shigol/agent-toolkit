@@ -14,10 +14,10 @@ async function validate({github, context, sourceRun,
       || run.head_repository?.full_name !== `${repo.owner}/${repo.repo}`
       || !/^[a-f0-9]{40}$/.test(run.head_sha || '')) throw Error('Source must be a completed same-repository default-branch worker');
   const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {...repo, run_id: run.id, filter: 'all', per_page: 100});
-  if (!jobs.some(job => job.name === 'run' && job.conclusion === 'success'
+  if (!jobs.some(job => job.name === 'run'
       && job.steps?.some(step => step.name === executeStepName && step.conclusion === 'success')
       && job.steps?.some(step => step.name === 'Run actions/upload-artifact@v4' && step.conclusion === 'success')))
-    throw Error('The source worker must have executed successfully and uploaded its artifact');
+    throw Error('The exact execution and artifact-upload steps must have succeeded; later job failures do not invalidate retained evidence');
   const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {...repo, run_id: run.id, per_page: 100});
   const matching = artifacts.filter(item => item.name === `codex-task-${run.id}`);
   if (matching.length !== 1 || matching[0].expired || !Number.isSafeInteger(matching[0].size_in_bytes)

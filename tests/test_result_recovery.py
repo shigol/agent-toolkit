@@ -24,13 +24,15 @@ async function attempt({run=baseline,artifacts=[artifact],jobs=[worker],permissi
 }
 (async()=>{
  assert.deepEqual(await attempt(),{sha:'a'.repeat(40),run_id:123});
+ for(const conclusion of ['success','failure','cancelled'])
+  assert.deepEqual(await attempt({jobs:[{...worker,conclusion}]}),{sha:'a'.repeat(40),run_id:123});
  const contract={expectedWorkerPath:'.github/workflows/continuity-fixture.yml',executeStepName:'Execute fixed harmless probe'};
  const fixed={run:{...baseline,path:contract.expectedWorkerPath},jobs:[{...worker,steps:[{name:contract.executeStepName,conclusion:'success'},worker.steps[1]]}]};
  await assert.rejects(attempt(fixed));
  assert.deepEqual(await attempt({...fixed,contract}),{sha:'a'.repeat(40),run_id:123});
  for(const delta of [{status:'in_progress'},{event:'pull_request'},{head_branch:'feature'},{head_repository:{full_name:'fork/project'}},{path:'.github/workflows/other.yml'},{head_sha:'bad'}])
   await assert.rejects(attempt({run:{...baseline,...delta}}));
- for(const overrides of [{permission:'read'},{jobs:[]},{jobs:[{...worker,conclusion:'cancelled'}]},{jobs:[{...worker,steps:[]}]},{artifacts:[]},{artifacts:[artifact,artifact]},{artifacts:[{...artifact,expired:true}]},{artifacts:[{...artifact,size_in_bytes:25000001}]}])
+ for(const overrides of [{permission:'read'},{jobs:[]},{jobs:[{...worker,steps:[{name:'Execute one committed brief',conclusion:'failure'},worker.steps[1]]}]},{jobs:[{...worker,steps:[worker.steps[0]]}]},{jobs:[{...worker,steps:[]}]},{artifacts:[]},{artifacts:[artifact,artifact]},{artifacts:[{...artifact,expired:true}]},{artifacts:[{...artifact,size_in_bytes:25000001}]}])
   await assert.rejects(attempt(overrides));
 })().catch(error=>{console.error(error);process.exitCode=1});
 '''
