@@ -65,7 +65,10 @@ class ReplayProbeTests(unittest.TestCase):
 
     def test_patterns_allowed_for_short_report_but_not_full_document(self):
         body = (probe.ROOT / 'vendor/humanizer/skills/SKILL.md').read_text()
-        patterns = '\n'.join(re.findall(r'^### \d+\..+$', body, re.M))
+        headings = '\n'.join(re.findall(r'^### \d+\..+$', body, re.M))
+        patterns = '### 1.' + body.split('### 1.', 1)[1].split('\n## When not to act', 1)[0]
+        self.assertFalse(probe.grade(case(required={'humanizer': 'patterns-or-full'}),
+                         [event('humanizer', headings)], '', probe.ROOT)['source_selection_passed'])
         events = [event('humanizer', patterns)]
         self.assertTrue(probe.grade(case(required={'humanizer': 'patterns-or-full'}), events, '', probe.ROOT)['source_selection_passed'])
         self.assertFalse(probe.grade(case('X07', {'humanizer': 'full'}), events, '', probe.ROOT)['source_selection_passed'])

@@ -79,6 +79,21 @@ class ProjectSetupTests(unittest.TestCase):
         self.assertEqual((self.project / '.agent-toolkit.json').read_text(), text)
         self.assertFalse((self.project / '.agents/skills/impeccable').exists())
 
+    def test_generated_policy_scopes_verification_to_technical_claims_not_general_prose(self):
+        self.initialize()
+        home = Path(self.tmp.name) / 'global profile'
+        project_setup.bootstrap_global(self.source, home)
+        for path in (self.project / 'AGENTS.md', self.project / 'CLAUDE.md', home / 'AGENTS.md'):
+            text = path.read_text()
+            self.assertIn('humanizer', text)
+            self.assertIn('prose', text)
+            self.assertIn('technical completion claims', text)
+            self.assertNotIn('before completion claims', text)
+            self.assertNotIn('for tests and completion claims', text)
+        guide = (self.source / 'catalog/verification-before-completion.md').read_text()
+        self.assertIn('**Do not use when:** General prose editing', guide)
+        self.assertIn('**Use when:** A development task', guide)
+
     def test_conflicting_integration_is_preserved_before_clone(self):
         path = self.project / '.github/dependabot.yml'
         path.parent.mkdir()

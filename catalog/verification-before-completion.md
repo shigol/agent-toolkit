@@ -4,7 +4,7 @@
 
 **Invocation:** automatic
 
-**Route:** Write or run tests; finish code; claim done, fixed or passing
+**Route:** Write/run tests; verify code; technical completion claims
 
 **Synonyms:** verify; verification; fresh evidence; test results; passing; completion; done; ready to ship
 
