@@ -22,6 +22,7 @@ class Updates(unittest.TestCase):
         self.base = self.git('rev-parse', 'HEAD')
         self.project = Path(self.tmp.name) / 'project'
         self.project.mkdir()
+        subprocess.run(['git', '-C', str(self.project), 'init', '--quiet'], check=True)
         selection = Path(".agent-toolkit.json")
         if selection.exists():
             (self.project / selection.name).write_bytes(selection.read_bytes())
@@ -40,15 +41,29 @@ class Updates(unittest.TestCase):
         self.git('add', '.')
         self.git('commit', '--quiet', '-m', 'Test update')
 
+    def commit_project(self):
+        # Generated cache ownership is recorded by the reviewed consumer commit.
+        subprocess.run(['git', '-C', str(self.project), 'add', '.'], check=True)
+        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=Test',
+            '-c', 'user.email=test@example.invalid', 'commit', '--quiet', '-m',
+            'Reviewed generated consumer integration'], check=True)
+
     def install(self):
         subprocess.run([sys.executable, str(self.root / 'scripts/toolkit.py'), 'install',
             '--project', str(self.project)], check=True, stdout=subprocess.DEVNULL)
 
     def test_new_skill_and_existing_skill_update_reach_both_agents(self):
+        selection = self.project / '.agent-toolkit.json'
+        config = json.loads(selection.read_text()) if selection.exists() else {
+            'schema': 1, 'groups': list(self.manifest()['groups'])}
+        config['entry_cache'] = True
+        selection.write_text(json.dumps(config))
         own = self.project / '.claude/skills/project-specific/SKILL.md'
         own.parent.mkdir(parents=True)
         own.write_text('Preserve my project instructions')
         self.install()
+        self.assertTrue((self.project / '.agent-skill-cache/manifest.json').is_file())
+        self.commit_project()
         data = self.manifest()
         path = 'vendor/emil/skills/new-example/SKILL.md'
         (self.root / path).parent.mkdir()
@@ -64,6 +79,7 @@ class Updates(unittest.TestCase):
         self.install()  # Existing checkouts and repeated setup must both work.
         for folder in ['.agents', '.claude']:
             self.assertIn('New skill', (self.project / folder / 'skills/new-example/SKILL.md').read_text())
+        self.commit_project()  # Publish the new-skill baseline before its next source update.
         (self.root / path).write_text((self.root / path).read_text() + 'Updated guidance\n')
         data['files'][path] = hashlib.sha256((self.root / path).read_bytes()).hexdigest()
         self.save(data)
