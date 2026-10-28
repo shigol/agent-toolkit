@@ -62,7 +62,7 @@
         }
       ],
       "commands": [],
-      "message": "Dispatch reserved; waiting for a verified Actions run.",
+      "message": "Dispatch accepted; waiting to verify the actual run.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -96,7 +96,7 @@
       "dispatched_at": "2026-10-28T13:08:15.132Z",
       "comment_id": 6469789552,
       "last_notice_at": "2026-10-28T13:07:47.029Z",
-      "reported_status": "queued",
+      "reported_status": "dispatching",
       "usage_unknown": false,
       "branch": ""
     },
