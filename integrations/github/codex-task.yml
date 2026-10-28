@@ -9,7 +9,7 @@ on:
       mode:
         description: Task execution or bounded selection acceptance probe
         type: choice
-        options: [task, native, global, value-smoke, value]
+        options: [task, native, global, value-smoke, value, replay-smoke]
         default: task
       request_issue:
         description: Optional issue or PR to receive status
@@ -78,6 +78,15 @@ jobs:
           TASK_MODE: ${{ inputs.mode }}
         run: |
           mkdir -p "$RUNNER_TEMP/codex-task"
+          if [ "$TASK_MODE" = replay-smoke ]; then
+            cp docs/skills/codex-replay-v1.json "$RUNNER_TEMP/codex-replay-cases.json"
+            replay_flags=()
+            if [ -d node_modules ] && [ ! -L node_modules ]; then replay_flags+=(--node-modules); fi
+            python3 .agent-toolkit/scripts/replay_probe.py --cases "$RUNNER_TEMP/codex-replay-cases.json" \
+              --repository "$GITHUB_REPOSITORY" --project "$GITHUB_WORKSPACE" \
+              --output "$RUNNER_TEMP/codex-replay" "${replay_flags[@]}"
+            exit 0
+          fi
           if [ "$TASK_MODE" = value ] || [ "$TASK_MODE" = value-smoke ]; then
             if [ "$TASK_MODE" = value-smoke ]; then
               python3 .agent-toolkit/scripts/value_probe.py --smoke --output "$RUNNER_TEMP/codex-value"
@@ -115,6 +124,14 @@ jobs:
           name: codex-value-evidence-${{ github.run_id }}
           path: ${{ runner.temp }}/codex-value/evidence/
           retention-days: 14
+      - name: Save independent replay evidence
+        if: always() && inputs.mode == 'replay-smoke'
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-replay-${{ github.run_id }}
+          path: ${{ runner.temp }}/codex-replay/
+          retention-days: 14
+          if-no-files-found: error
       - name: Save a review patch
         if: always()
         run: python3 .github/scripts/codex_task_patch.py "$RUNNER_TEMP/codex-task"

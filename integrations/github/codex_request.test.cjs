@@ -41,7 +41,7 @@ test('writers allowed; readers denied before reading a brief or dispatching',asy
 test('acceptance modes are an explicit whitelist and cannot select a ref or inline prompt',async()=>{
  const root=fixture();
  try {
-  for(const mode of ['native','global','value-smoke','value']) {
+  for(const mode of ['native','global','value-smoke','value','replay-smoke']) {
    const c=client();c.context.payload.comment.body='/codex-run docs/brief.md '+mode;
    await dispatch({...c,root});assert.equal(c.calls[0].inputs.mode,mode);assert.equal(c.calls[0].ref,'main');
   }

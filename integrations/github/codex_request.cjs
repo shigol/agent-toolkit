@@ -12,7 +12,7 @@ function briefPath(value, root = process.cwd()) {
 function parse(body) {
   const lines = String(body).trim().split(/\r?\n/);
   if (lines.length !== 1) throw Error('Use one command line: /codex-run docs/path.md');
-  const match = /^\/codex-run ([^ ]+)(?: (native|global|value-smoke|value))?$/.exec(lines[0]);
+  const match = /^\/codex-run ([^ ]+)(?: (native|global|value-smoke|value|replay-smoke))?$/.exec(lines[0]);
   if (!match) throw Error('Use /codex-run docs/path.md');
   return match[1];
 }
@@ -27,12 +27,12 @@ async function dispatch({github, context, root = process.cwd()}) {
   if (!trusted) throw Error('Only repository writers can start Codex');
   const body = String(context.payload.comment.body).trim();
   const brief = briefPath(parse(body), root);
-  const mode = /^\/codex-run [^ ]+ (native|global|value-smoke|value)$/.exec(body)?.[1] || 'task';
+  const mode = /^\/codex-run [^ ]+ (native|global|value-smoke|value|replay-smoke)$/.exec(body)?.[1] || 'task';
   const ref = context.payload.repository.default_branch;
   const issue = String(context.payload.issue.number), request = String(context.payload.comment.id);
   await github.rest.actions.createWorkflowDispatch({owner, repo, workflow_id: 'codex-task.yml', ref,
     inputs: {brief, mode, request_issue: issue, request_id: request}});
   await github.rest.issues.createComment({owner, repo, issue_number: Number(issue),
-    body: `Codex request ${request} accepted from @${login}: ${brief} on ${ref}; mode=${mode}. ${mode === 'value' ? 'Fixed18-call quality sample; no quality result is assumed.' : mode === 'value-smoke' ? 'Two-call quality pilot.' : ''} Results will be posted here. Workflow: https://github.com/${owner}/${repo}/actions/workflows/codex-task.yml`});
+    body: `Codex request ${request} accepted from @${login}: ${brief} on ${ref}; mode=${mode}. ${mode === 'value' ? 'Fixed18-call quality sample; no quality result is assumed.' : mode === 'value-smoke' ? 'Two-call quality pilot.' : mode === 'replay-smoke' ? 'Only the recommended held-out smoke cases for this repository.' : ''} Results will be posted here. Workflow: https://github.com/${owner}/${repo}/actions/workflows/codex-task.yml`});
 }
 module.exports = {briefPath, parse, dispatch};
