@@ -171,6 +171,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: write
+      actions: write
       issues: write
       pull-requests: write
     steps:
@@ -218,3 +219,7 @@ jobs:
               save: process.env.SAVE_RESULT, branch: process.env.RESULT_BRANCH, execution: process.env.EXECUTION_RESULT});
             await github.rest.issues.createComment({...context.repo, issue_number: number,
               body: `<!-- codex-result:${context.runId} -->\n${JSON.stringify(receipt)}\nCodex run ${context.runId} ${outcome}: request ${process.env.REQUEST_ID}; worker=${process.env.RUN_RESULT}, save=${process.env.SAVE_RESULT}.${branch} Answer, source-read log and patch: ${url}. Nothing was merged or deployed.`});
+            if (/^continuity-[0-9]+-[0-9]+-[12]$/.test(process.env.REQUEST_ID)) {
+              await github.rest.actions.createWorkflowDispatch({...context.repo, workflow_id: 'codex-continuity.yml',
+                ref: context.payload.repository.default_branch, inputs: {completed_run: String(context.runId)}});
+            }

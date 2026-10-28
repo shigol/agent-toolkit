@@ -59,6 +59,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: write
+      actions: write
       issues: write
       pull-requests: write
     steps:
@@ -103,3 +104,5 @@ jobs:
             if (!Number.isSafeInteger(issue) || issue < 1) throw Error('Invalid request issue');
             await github.rest.issues.createComment({...context.repo, issue_number: issue,
               body: `<!-- codex-result:${context.runId} -->\n${JSON.stringify(data)}\nHarmless continuity fixture; no model call, credentials, merge or deployment. Run: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});
+            await github.rest.actions.createWorkflowDispatch({...context.repo, workflow_id: 'continuity-controller.yml',
+              ref: context.payload.repository.default_branch, inputs: {completed_run: String(context.runId)}});

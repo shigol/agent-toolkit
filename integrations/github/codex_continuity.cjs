@@ -506,4 +506,20 @@ async function controller(options) {
   }
 }
 
-module.exports = {STATE_REF, STATE_FILE, regular, loadPlan, parse, createRecord, receipt, advance, Store, summary, controller, contractHashes};
+async function waitForPredecessor({github, repo, value = '', branch, worker = 'codex-task.yml',
+  sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), polls = 12}) {
+  if (!value) return null;
+  if (!/^[1-9][0-9]{0,19}$/.test(String(value)) || !Number.isSafeInteger(Number(value))
+      || !/^[A-Za-z0-9_-]+\.yml$/.test(worker) || !Number.isSafeInteger(polls) || polls < 1 || polls > 12) throw Error('Invalid predecessor workflow');
+  for (let attempt = 0; attempt < polls; attempt += 1) {
+    const run = (await github.rest.actions.getWorkflowRun({...repo, run_id: Number(value)})).data;
+    if (run.event !== 'workflow_dispatch' || run.head_branch !== branch
+        || run.head_repository?.full_name !== `${repo.owner}/${repo.repo}`
+        || run.path !== `.github/workflows/${worker}` || !/^[a-f0-9]{40}$/.test(run.head_sha || '')) throw Error('Untrusted predecessor workflow');
+    if (run.status === 'completed' && typeof run.conclusion === 'string') return run;
+    if (attempt + 1 < polls) await sleep(5000);
+  }
+  throw Error('Predecessor workflow is not complete; durable state remains for watchdog recovery');
+}
+
+module.exports = {STATE_REF, STATE_FILE, regular, loadPlan, parse, createRecord, receipt, advance, Store, summary, controller, contractHashes, waitForPredecessor};
