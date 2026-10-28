@@ -48,7 +48,7 @@ The 320-entry retrieval fixture is structural evidence only. Before claiming hun
 | Unattended handoff | Real comment-to-result requests passed in both repos; actual claims matched full reads | Full selected reads and review-branch transport proved; app cache reused in40677743925; UI render timeout remains |
 | Source-read audit | Successful command output, whole-source coverage, partial/unknown states and false-claim tests | Other host formats need real output evidence; declarations alone never pass |
 | Claude host | Account bootstrap exists; prior source successes and a latest app read failure are recorded | Five fresh tasks correct;11/14 required reads; fix reporting-prose trigger and rerun affected cases: Codex + Claude |
-| Replay | Codex delivered 38 labelled requests for Claude, including four trivial cases | Claude delivers Codex's set; smoke first, then decide expansion from usage/failures |
+| Replay | Codex delivered 38 labelled requests for Claude, including four trivial cases | Claude's42-case set delivered; run only recommended five smoke cases, then decide expansion from usage/failures |
 | Output value | Codex recorded 18 valid samples/nine blind pairs and all 12 UI renders | Both blind judgements committed; Codex map revealed (7 preferences/2ties); await Claude map; small-sample limits retained |
 | Final status | Shared source bytes and scripts verified; exact runs in EVIDENCE.md and private SHARED.md | Keep EVG-124 open until peer/host gaps are actually closed |
 
