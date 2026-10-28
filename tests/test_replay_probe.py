@@ -1,4 +1,5 @@
 import json
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -136,6 +137,62 @@ class ReplayProbeTests(unittest.TestCase):
                              ('/runner/private-cases.json',))['state'], 'leaked')
         self.assertEqual(probe.label_leaks([event('humanizer', 'must_read', 1)])['state'], 'no_observed_leak')
         self.assertEqual(probe.label_leaks([event('humanizer', 'Actual source text')])['state'], 'no_observed_leak')
+
+    def test_explicit_career_profile_matches_prepush_and_records_exact_archive_omissions(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source, target = Path(folder) / 'source', Path(folder) / 'target'
+            (source / 'tools').mkdir(parents=True)
+            sparse = ['/*', *('!/' + prefix for prefix in probe.CAREER_SPARSE_PREFIXES)]
+            (source / 'tools/prepush.py').write_text('SPARSE = ' + repr(sparse) + '\n')
+            for prefix in probe.CAREER_SPARSE_PREFIXES:
+                (source / prefix).mkdir(parents=True)
+                (source / prefix / 'archive.json').write_text('a' * 1000)
+            retained = ['profile/cv.md', 'job-market/reports/current.md', 'job-market/board/gaps.json',
+                        'job-market/db/postings.jsonl', 'job-market/crawler/check.py']
+            for name in retained:
+                (source / name).parent.mkdir(parents=True, exist_ok=True)
+                (source / name).write_text('current facts')
+            commit(source)
+            with patch.object(probe, 'MAX_SNAPSHOT_BYTES', 512):
+                stats = probe.snapshot(source, target, profile='career-prepush')
+            self.assertEqual(stats['profile']['name'], 'career-prepush')
+            for prefix in probe.CAREER_SPARSE_PREFIXES:
+                self.assertEqual(stats['profile']['omitted_prefixes'][prefix], {'files': 1, 'bytes': 1000})
+                self.assertFalse((target / prefix).exists())
+            self.assertTrue(all((target / name).read_text() == 'current facts' for name in retained))
+            self.assertIn('archive-dependent findings remain unverified', stats['profile']['limitation'])
+            (source / 'tools/prepush.py').write_text("SPARSE = ['/*']\n")
+            commit(source)
+            with self.assertRaisesRegex(ValueError, 'SPARSE changed'):
+                probe.snapshot(source, Path(folder) / 'drifted', profile='career-prepush')
+
+    def test_only_pinned_engine_is_copied_with_verified_checksum_and_executable_mode(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source, target = Path(folder) / 'source', Path(folder) / 'target'
+            scripts = target / 'vendor/impeccable/skills/scripts'
+            scripts.mkdir(parents=True)
+            (scripts / 'VERSION').write_text('1.2.3\n')
+            body = b'Verified fixture engine; never executed\n'
+            digest = hashlib.sha256(body).hexdigest()
+            (scripts / 'engine-checksums.txt').write_text('1.2.3 impeccable-linux-x64 ' + digest + '\n')
+            binary = source / 'vendor/impeccable/skills/scripts/bin/linux-x64/impeccable'
+            binary.parent.mkdir(parents=True)
+            (binary.parent / 'unrelated-profile').write_text('must not copy')
+            import toolkit
+            with patch.object(toolkit.platform, 'system', return_value='Linux'), patch.object(toolkit.platform, 'machine', return_value='x86_64'):
+                self.assertEqual(probe.copy_pinned_engine(source, target)['state'], 'missing')
+                binary.write_bytes(b'wrong checksum')
+                with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
+                    probe.copy_pinned_engine(source, target)
+                self.assertFalse((scripts / 'bin/linux-x64/impeccable').exists())
+                binary.write_bytes(body)
+                binary.chmod(0o600)
+                report = probe.copy_pinned_engine(source, target)
+            copied = scripts / 'bin/linux-x64/impeccable'
+            self.assertEqual(report['state'], 'copied_verified')
+            self.assertEqual(copied.read_bytes(), body)
+            self.assertEqual(copied.stat().st_mode & 0o777, 0o755)
+            self.assertFalse((copied.parent / 'unrelated-profile').exists())
 
     def test_executor_boundary_retains_real_patch_usage_and_removes_snapshot(self):
         # This is a deterministic fake CLI boundary test, never live-pass evidence.

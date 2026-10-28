@@ -99,6 +99,7 @@ jobs:
           if [ "$TASK_MODE" = replay-smoke ]; then
             cp docs/skills/codex-replay-v1.json "$RUNNER_TEMP/codex-replay-cases.json"
             replay_flags=()
+            if [ "$GITHUB_REPOSITORY" = shigol/career ]; then replay_flags+=(--snapshot-profile career-prepush); fi
             if [ -d node_modules ] && [ ! -L node_modules ]; then replay_flags+=(--node-modules); fi
             python3 .agent-toolkit/scripts/replay_probe.py --cases "$RUNNER_TEMP/codex-replay-cases.json" \
               --repository "$GITHUB_REPOSITORY" --project "$GITHUB_WORKSPACE" \
