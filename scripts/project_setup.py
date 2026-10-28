@@ -43,7 +43,7 @@ def native_block():
             'If native coverage is missing or incomplete, follow .agent-toolkit/SELECTION.md, '
             'then the catalogue index; search last. Missing files: bash tools/setup-agent-toolkit.sh --skills-only.\n'
             'Use one primary UI workflow: impeccable by default; design-taste-frontend only for an explicit alternative direction. '
-            'Use humanizer for prose, including replies reporting code work (whole source for documents/outside messages; ### patterns for short replies/PR bodies) '
+            'Use humanizer for prose, including replies reporting code work (whole source for documents/outside messages; pattern text for short replies/PR bodies) '
             'and verification-before-completion for technical completion claims. '
             'This Codex selection rule takes precedence over Claude-specific routing in CLAUDE.md; its other project rules still apply. '
             'Project rules and factual/template constraints win. Each commit/PR names only skills actually read: '

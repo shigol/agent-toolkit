@@ -14,7 +14,7 @@
 
 **Overlaps and default:** Adds a development verification workflow absent from the existing UI, video, writing and PM collections. Supports the selected implementation skill after its work; does not replace project-specific checks. Run verification appropriate to the actual claim and follow explicit user/project constraints.
 
-**Requirements:** Access to the changed work, the relevant verification command and its fresh complete output/exit code. No additional CLI beyond the project's actual checks. Instructions are readable by Claude and Codex; live host execution is not yet verified. Do not claim a full build from a linter or invent runtime access. Source references to delegation do not authorize spawning agents.
+**Requirements:** Access to the changed work, the relevant verification command and its fresh complete output/exit code. No additional CLI beyond the project's actual checks. Instructions are readable by Claude and Codex; execution readiness depends on the project runtime. Do not claim a full build from a linter or invent runtime access. Source references to delegation do not authorize spawning agents.
 
 **Expected output:** A completion report grounded in observed checks, or an accurate failure/unverified status with the specific remaining gap.
 
