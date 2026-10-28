@@ -4,11 +4,13 @@ Keep case labels outside the executor prompt and snapshot. Run this trusted harn
 outside the model sandbox, with the current repository's existing Codex login.
 """
 import argparse
+import ast
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -26,6 +28,8 @@ MAX_SNAPSHOT_FILES = 200000
 MAX_SNAPSHOT_SECONDS = 180
 GRADING_KEYS = ('must_read', 'acceptable_additional_shared_reads',
                 'forbidden_if_unrequested', 'maximum_unrelated_shared_bodies')
+CAREER_SPARSE_PREFIXES = ('job-market/codex/run/', 'job-market/db/raw/linkedin/',
+                         'job-market/db/raw/fantastic/')
 
 
 class SnapshotError(ValueError):
@@ -78,24 +82,47 @@ def excluded(path):
             or bool(re.search(r'(?:replay|held[-_]?out)', name, re.I)))
 
 
-def snapshot(source, destination, prefix='', hidden_paths=(), stats=None, deadline=None):
+def snapshot_profile(project, name):
+    if name == 'full':
+        return {'name': name, 'omitted_prefixes': {}}
+    if name != 'career-prepush':
+        raise ValueError('Unknown snapshot profile')
+    source = git(project, 'show', 'HEAD:tools/prepush.py').decode()
+    assignments = [node for node in ast.parse(source).body if isinstance(node, ast.Assign)
+                   and any(isinstance(target, ast.Name) and target.id == 'SPARSE' for target in node.targets)]
+    expected = ['/*', *('!/' + prefix for prefix in CAREER_SPARSE_PREFIXES)]
+    if len(assignments) != 1 or ast.literal_eval(assignments[0].value) != expected:
+        raise ValueError('Career prepush SPARSE changed; review the explicit snapshot profile')
+    return {'name': name, 'source_path': 'tools/prepush.py',
+            'source_blob': git(project, 'rev-parse', 'HEAD:tools/prepush.py').decode().strip(),
+            'omitted_prefixes': {prefix: {'files': 0, 'bytes': 0} for prefix in CAREER_SPARSE_PREFIXES},
+            'limitation': 'Scoped replay fixture using existing prepush exclusions; archive-dependent findings remain unverified. This is not full-repository execution.'}
+
+
+def snapshot(source, destination, prefix='', hidden_paths=(), stats=None, deadline=None, profile='full'):
     """Copy committed files, never history, untracked runtime files or replay labels."""
     started = time.monotonic()
-    stats = stats if stats is not None else {'files': 0, 'bytes': 0}
+    stats = stats if stats is not None else {'files': 0, 'bytes': 0, 'profile': snapshot_profile(source, profile)}
     deadline = deadline if deadline is not None else started + MAX_SNAPSHOT_SECONDS
     destination.mkdir(parents=True, exist_ok=True)
-    records = git(source, 'ls-tree', '-rz', 'HEAD').split(b'\0')
+    records = git(source, 'ls-tree', '-rzl', 'HEAD').split(b'\0')
     batch = subprocess.Popen(['git', '-C', str(source), 'cat-file', '--batch'],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     try:
         for record in records:
             if time.monotonic() > deadline:
-                raise ValueError('Snapshot exceeded 180-second limit; no task facts pruned')
+                raise ValueError('Snapshot exceeded 180-second limit; no additional task facts pruned')
             if not record:
                 continue
             header, raw_path = record.split(b'\t', 1)
-            mode, kind, object_id = header.decode().split()
+            mode, kind, object_id, size_text = header.decode().split()
             path = os.fsdecode(raw_path)
+            omitted = next((p for p in stats['profile']['omitted_prefixes'] if (prefix + path).startswith(p)), None)
+            if omitted:
+                counts = stats['profile']['omitted_prefixes'][omitted]
+                counts['files'] += 1
+                counts['bytes'] += int(size_text) if kind == 'blob' else 0
+                continue
             if excluded(prefix + path) or prefix + path in hidden_paths:
                 continue
             target = destination / path
@@ -115,7 +142,7 @@ def snapshot(source, destination, prefix='', hidden_paths=(), stats=None, deadli
                 stats['files'] += 1
                 stats['bytes'] += size
                 if stats['files'] > MAX_SNAPSHOT_FILES or stats['bytes'] > MAX_SNAPSHOT_BYTES:
-                    raise ValueError('Snapshot exceeded 200000-file/1-GiB limit; no task facts pruned')
+                    raise ValueError('Snapshot exceeded 200000-file/1-GiB limit; no additional task facts pruned')
                 body = batch.stdout.read(size)
                 if len(body) != size or batch.stdout.read(1) != b'\n':
                     raise ValueError('Incomplete committed blob response')
@@ -227,19 +254,49 @@ def link_dependencies(project, workspace):
         (target / entry.name).symlink_to(entry, target_is_directory=entry.is_dir())
 
 
-def execute(case, project, folder, effort, timeout, hidden_paths=(), node_modules=False, label_paths=()):
+def copy_pinned_engine(source, destination):
+    """Copy one ignored binary, verified against the committed snapshot's pin."""
+    import toolkit as installer
+    original_root = installer.ROOT
+    try:
+        installer.ROOT = destination
+        binary, version, _, expected = installer.engine_details()
+    except (OSError, RuntimeError) as error:
+        return {'state': 'unavailable', 'reason': str(error)}
+    finally:
+        installer.ROOT = original_root
+    relative = binary.relative_to(destination)
+    original = source / relative
+    if not original.is_file():
+        return {'state': 'missing', 'path': str(relative), 'version': version}
+    if original.is_symlink() or not original.resolve().is_relative_to(source.resolve()):
+        raise ValueError('Pinned engine must be a regular file inside the original toolkit')
+    if installer.digest(original) != expected:
+        raise ValueError('Original pinned Impeccable engine checksum mismatch')
+    binary.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(original, binary)
+    binary.chmod(0o755)
+    if installer.digest(binary) != expected or binary.stat().st_mode & 0o777 != 0o755:
+        binary.unlink()
+        raise ValueError('Copied pinned Impeccable engine checksum or mode mismatch')
+    return {'state': 'copied_verified', 'path': str(relative), 'version': version, 'sha256': expected,
+            'scope': 'Exact pinned file only; no handshake, browser or render readiness claim'}
+
+
+def execute(case, project, folder, effort, timeout, hidden_paths=(), node_modules=False, label_paths=(), profile='full'):
     folder.mkdir()
     started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix='codex-replay-') as temporary:
         workspace = Path(temporary) / 'project'
-        snapshot_stats = snapshot(project, workspace, hidden_paths=hidden_paths)
+        snapshot_stats = snapshot(project, workspace, hidden_paths=hidden_paths, profile=profile)
         toolkit = workspace / '.agent-toolkit'
         if not (toolkit / 'toolkit.lock.json').is_file():
             raise ValueError('Actual repository needs its initialized pinned toolkit')
         git(workspace, 'init', '--quiet')
-        (workspace / '.git/info/exclude').write_text('/node_modules/\n')
+        (workspace / '.git/info/exclude').write_text('/node_modules/\n/.agent-toolkit/vendor/impeccable/skills/scripts/bin/\n')
         git(workspace, 'add', '--force', '--all')
         baseline = git(workspace, 'write-tree').decode().strip()
+        engine = copy_pinned_engine(project / '.agent-toolkit', toolkit)
         if node_modules:
             link_dependencies(project, workspace)
         command = ['codex', 'exec', '--ephemeral', '--json', '--skip-git-repo-check',
@@ -281,9 +338,10 @@ def execute(case, project, folder, effort, timeout, hidden_paths=(), node_module
                        'patch_state': 'retained' if len(patch) <= MAX_ARTIFACT else 'exceeded_artifact_limit',
                        'usage': measured_usage(events),
                        'snapshot': snapshot_stats,
-                       'runtime_scope': 'Committed files only; ignored engines, browsers and profiles are not copied',
+                       'runtime_scope': 'Committed files plus one checksum-verified pinned engine when available; browsers and profiles are not copied',
+                       'host_isolation': 'Fresh snapshots share the runner host and /tmp; cross-case temporary-file reads can occur. No hard host isolation or statistical independence claim.',
                        'dependencies': 'Explicit existing runner node_modules links; common build caches local' if node_modules else 'Not shared; locked dependency install required separately',
-                       'pinned_engine': 'Not copied from ignored files; runtime availability must be checked, never inferred'})
+                       'pinned_engine': engine})
         result['stop_for_auth_or_limit'] = bool(re.search(
             r'unauthorized|usage limit|limit reached|refresh_token_reused',
             '\n'.join(str(row.get('message', row.get('error', ''))) for row in events)
@@ -293,7 +351,9 @@ def execute(case, project, folder, effort, timeout, hidden_paths=(), node_module
         return result
 
 
-def run(cases_path, repository, project, output, effort='medium', timeout=600, node_modules=False):
+def run(cases_path, repository, project, output, effort='medium', timeout=600, node_modules=False, profile='full'):
+    if profile != 'full' and repository != REPOSITORIES[0]:
+        raise ValueError('Career snapshot profile is restricted to Career')
     document = json.loads(cases_path.read_text())
     cases = select_cases(document, repository)
     # Match the requested actual origin without changing authentication or refs.
@@ -305,7 +365,7 @@ def run(cases_path, repository, project, output, effort='medium', timeout=600, n
     reports = {}
     for case in cases:
         try:
-            reports[case['id']] = execute(case, project, output / case['id'], effort, timeout, hidden_paths, node_modules, (cases_path,))
+            reports[case['id']] = execute(case, project, output / case['id'], effort, timeout, hidden_paths, node_modules, (cases_path,), profile)
         except (OSError, ValueError, subprocess.CalledProcessError) as error:
             (output / case['id']).mkdir(exist_ok=True)
             reports[case['id']] = {'execution_state': 'harness_failed', 'error': str(error),
@@ -319,7 +379,9 @@ def run(cases_path, repository, project, output, effort='medium', timeout=600, n
     for case_id, report in reports.items():
         (output / case_id / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     summary = {'scope': 'Recommended five-case smoke only; no automatic expansion or overall task pass',
-               'repository': repository, 'project_commit': git(project, 'rev-parse', 'HEAD').decode().strip(),
+               'repository': repository, 'snapshot_profile': profile,
+               'host_isolation': 'Shared runner host and /tmp; no hard isolation or statistical independence claim',
+               'project_commit': git(project, 'rev-parse', 'HEAD').decode().strip(),
                'toolkit_commit': git(project / '.agent-toolkit', 'rev-parse', 'HEAD').decode().strip(),
                'case_file_sha256': hashlib.sha256(cases_path.read_bytes()).hexdigest(),
                'codex_version': subprocess.check_output(['codex', '--version'], text=True).strip(),
@@ -340,6 +402,8 @@ if __name__ == '__main__':
     parser.add_argument('--effort', choices=['low', 'medium', 'high'], default='medium')
     parser.add_argument('--timeout', type=int, choices=range(30, 901), default=600, metavar='30..900')
     parser.add_argument('--node-modules', action='store_true', help='Use this runner checkout\'s already-installed locked dependencies; never installs them')
+    parser.add_argument('--snapshot-profile', choices=['full', 'career-prepush'], default='full',
+                        help='Explicit scoped Career fixture matching its committed prepush SPARSE exclusions')
     args = parser.parse_args()
     raise SystemExit(run(args.cases.resolve(), args.repository, args.project.resolve(),
-                         args.output.resolve(), args.effort, args.timeout, args.node_modules))
+                         args.output.resolve(), args.effort, args.timeout, args.node_modules, args.snapshot_profile))
