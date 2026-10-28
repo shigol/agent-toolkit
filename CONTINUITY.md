@@ -9,6 +9,12 @@ Before ending a turn with authorised work unfinished, retain either:
 
 Do not call a task running from an accepted request alone. Check the actual job state and recent progress. A completed/failed bounded run does not imply that a coordinator started the next step. Save partial work before a time limit, and keep review/merge/deployment separate from worker success.
 
+## Proactive agent collaboration
+
+**Own collaboration end to end (Eugene, 2026-10-28).** When collaborating with Claude, Codex or another agent, the initiating agent remains accountable for a short, timely answer and the final outcome. Send a bounded question to a named owner through an available wake/contact route; request acknowledgement within5minutes and an answer or blocker with an ETA within15minutes by default (coordinator targets, not provider guarantees). Record the request, actual run/recipient, deadline and next action. Check receipt and progress yourself. If acknowledgement is late, investigate and use another supported route; if the answer is late, follow up, narrow the question, reassign or take over accessible work. Keep independent work moving. Never create duplicate active workers, bypass review/access controls or retry an ambiguous dispatch. A posted handoff is not progress and "waiting for Claude" is not a sufficient stopping point. Eugene never relays or chases. Before ending, verify a running cloud continuation with a next check, or state the precise access/budget blocker and recovery action; never promise idle-chat monitoring. Applies to every thread and existing/future project; keep current authorization and budgets.
+
+These response targets apply while coordination is active. They do not change provider cooldowns, wake budgets or access boundaries. If a worker has started, follow its real run rather than starting a duplicate. If contact is impossible, resolve accessible work, record the tested access failure and use a supported escalation path. A specific blocked status is honest reporting; it does not transfer ownership to the user.
+
 ## Coverage
 
 New projects initialized by this toolkit and Codex global profiles receive a compact instruction pointing here. Existing projects need the reviewed pin and regenerated setup; existing chats do not refresh themselves. Claude's account adapter and canonical working rules are maintained by Claude. Repository hooks are not an enforcement mechanism on hosts that skip them.
