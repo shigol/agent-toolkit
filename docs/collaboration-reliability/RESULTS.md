@@ -30,6 +30,16 @@ The first release's cron-only monitoring failed the timely-notice test: no sched
 - Career [PR126](https://github.com/shigol/career/pull/126) merged `3a3fda95`; final head `64c64e96` passed installation [40780632831](https://github.com/shigol/career/actions/runs/40780632831). Required prepush used a disclosed code-equivalent cached-data baseline:37 pass and12 unchanged cached-baseline failures. This is not a current-data or scoring certification.
 - Both pin97df0c26. Project authentication, worker setup and native skill preparation were preserved. Installing a library pin alone does not copy workflow updates into an existing project.
 
+## Older retained result in a large consumer
+
+An additional real Career recovery initially failed: [40780885182](https://github.com/shigol/career/actions/runs/40780885182) validated its retained artifact but timed out after120seconds pushing a tiny review commit from an older sparse shallow checkout. A real Git-protocol regression reproduced default push downloading an unrelated promised blob. Explicit push negotiation preserved that missing blob while saving the expected result. This diagnosis fits the original timeout; the original job did not retain a Git trace.
+
+[PR38](https://github.com/shigol/agent-toolkit/pull/38) merged `6e7f502236780e39696e6c331ed3e987cafd5b24`; exact-head CI [40782292718](https://github.com/shigol/agent-toolkit/actions/runs/40782292718) and actual-main [40782461454](https://github.com/shigol/agent-toolkit/actions/runs/40782461454) passed. Local checks now total115 Python tests, including10 transport cases; no timeout, hook, credential or inference-budget guard was relaxed.
+
+Both consumers adopted the exact helper and pin: Career [PR127](https://github.com/shigol/career/pull/127), merged `e0593c69`, installation [40783087227](https://github.com/shigol/career/actions/runs/40783087227); app [PR273](https://github.com/shigol/eugene-s-job-hub/pull/273), merged `72bf5028`, installation [40782714473](https://github.com/shigol/eugene-s-job-hub/actions/runs/40782714473), evidence [40782714193](https://github.com/shigol/eugene-s-job-hub/actions/runs/40782714193). These follow-ups changed only the pin and transport helper. Career's48-check prepush used current code with a disclosed cached-data baseline:36 pass,12 identical cached-baseline failures; no current-data certification.
+
+The same retained Career result from cancelled source run40762619791 was then recovered successfully by [40783259020](https://github.com/shigol/career/actions/runs/40783259020). Save/push ran22:52:52–22:52:54UTC, two seconds. Branch `codex/task-40762619791`, commit `aa8c2fc01809a7d8ad7d4fb2b4c1c998c516420c`, differs from its original revision only by one13-line answer document. Its blob exactly matches the answer already manually retained on main; no duplicate merge is needed. No inference was repeated, and the earlier failed/cancelled outcomes remain recorded.
+
 ## Boundaries
 
 Unit fixtures separately cover ambiguous dispatch/callbacks, timeout budgets, resume epochs, path validation and monitor handoff. Those branches are not all separately induced in live production. Normal task execution is bounded to one worker invocation by default; observed token usage is not a hard ceiling within a provider call. Provider outages and runner queues can delay checks.

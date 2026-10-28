@@ -2,11 +2,11 @@
 
 Use this when Claude needs Codex to review, implement, investigate or verify work. The requesting agent owns the handoff until a checked result is delivered. Eugene does not relay messages, start the worker or chase either agent.
 
-This protocol requires the reviewed collaboration integration from toolkit `97df0c26` or a compatible later version. A toolkit pin alone does not copy workflows into an old project: use the project's adopted integration and its passing checks. New `init-project` integrations include it.
+This protocol requires the reviewed collaboration integration from toolkit `6e7f5022` or a compatible later version. A toolkit pin alone does not copy workflows into an old project: use the project's adopted integration and its passing checks. New `init-project` integrations include it.
 
 ## Start one task
 
-1. Read the project's rules, shared coordination record and latest inbox messages. Check the durable registry and active workflow runs for this work. If someone already owns an active request, follow that request instead of launching another.
+1. Read the project's rules, shared coordination record and latest inbox messages. Paginate a long inbox: GitHub's first comments page may contain only old messages. Check the durable registry and active workflow runs for this work. If someone already owns an active request, follow that request instead of launching another.
 2. Commit a bounded Markdown brief under `docs/`, `codex/` or `tools/` on the repository's default branch, using its normal review rules. Include the goal, expected answer, allowed changes, required checks, owner and deadline. A brief on an unmerged feature branch is not available to the dispatcher. Keep secrets and copied transcripts out of it.
 3. Post this as the first line of a comment on that repository's issue or PR:
 
