@@ -99,9 +99,9 @@
       "request_id": "continuity-6481439101-0-1",
       "dispatched_at": "2026-10-28T21:44:47.417Z",
       "comment_id": 6481443796,
-      "last_notice_at": "2026-10-28T21:44:47.417Z",
+      "last_notice_at": "2026-10-28T21:56:21.288Z",
       "deadline_notices": [],
-      "reported_status": "initializing",
+      "reported_status": "review",
       "worker_started_at": "2026-10-28T21:56:21.288Z",
       "usage_unknown": false,
       "branch": ""
