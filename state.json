@@ -33,17 +33,17 @@
         "path": "docs/continuity-fixtures/retry-plan.json",
         "sha256": "aa6968b31109b4c5b06be97feb5bd28284e491a60e8cc6c88292d1b6efb82dd8"
       },
-      "status": "dispatching",
+      "status": "queued",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
       "input_tokens": 0,
       "started_at": "2026-10-28T12:51:40.034Z",
       "expires_at": "2026-10-28T13:21:40.034Z",
-      "observed_at": "2026-10-28T12:51:40.034Z",
+      "observed_at": "2026-10-28T12:51:45.343Z",
       "history": [],
       "commands": [],
-      "message": "Dispatch reserved; waiting for a verified Actions run.",
+      "message": "Actions run verified queued; execution has not started.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -70,9 +70,9 @@
           "sha256": "4ba5d7e6da38ffa0410cd39e8541661e8ee45d97803c9132b4deec7fccae57d2"
         }
       ],
-      "run_id": null,
-      "run_url": "",
-      "run_revision": null,
+      "run_id": 40691336981,
+      "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40691336981",
+      "run_revision": "b02abcbfb2daa06062e1ea92989cab4af1542cc7",
       "request_id": "continuity-6469449679-0-1",
       "dispatched_at": "2026-10-28T12:51:40.034Z"
     },
