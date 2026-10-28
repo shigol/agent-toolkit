@@ -5,6 +5,9 @@ on:
       - .agent-toolkit
       - .agent-toolkit.json
       - .agent-handoff.json
+      - .agent-skill-cache/**
+      - .agents/skills/**
+      - .claude/skills/**
       - .gitmodules
       - .github/dependabot.yml
       - .github/scripts/*toolkit*
@@ -20,6 +23,9 @@ on:
       - .agent-toolkit
       - .agent-toolkit.json
       - .agent-handoff.json
+      - .agent-skill-cache/**
+      - .agents/skills/**
+      - .claude/skills/**
       - .gitmodules
       - .github/dependabot.yml
       - .github/scripts/*toolkit*
@@ -50,6 +56,7 @@ jobs:
             .agent-toolkit
             .agents
             .claude
+            .agent-skill-cache
             .github/scripts
             .github/workflows
             scripts
@@ -64,6 +71,8 @@ jobs:
         run: git submodule update --init -- .agent-toolkit
       - name: Validate inventory and every source checksum before execution
         run: python3 .github/scripts/toolkit_update.py validate
+      - name: Reject stale or unpublished readable cache before setup
+        run: python3 .agent-toolkit/scripts/toolkit.py verify-cache --project . --check
       - name: Verify installed Claude wake bridge
         run: |
           components=(.github/scripts/claude_wake.cjs .github/scripts/claude_wake.test.cjs .github/workflows/claude-wake.yml)
@@ -108,7 +117,8 @@ jobs:
       - name: Require committed Claude routes to match the pin
         run: |
           python3 .agent-toolkit/scripts/toolkit.py emit-routes --project . --agents claude --check
-          git diff --exit-code -- CLAUDE.md
+          git diff --exit-code -- CLAUDE.md .agents/skills .claude/skills .agent-skill-cache
+          python3 .agent-toolkit/scripts/toolkit.py verify-cache --project . --check
       - name: Report selected files for both agents
         run: python3 .agent-toolkit/scripts/toolkit.py status --project .
       - name: Test installer, propagation of new skills, and merge guards
