@@ -206,6 +206,69 @@
       "run_revision": null,
       "request_id": "continuity-6469784686-0-1",
       "dispatched_at": "2026-10-28T13:09:19.103Z"
+    },
+    {
+      "schema": 1,
+      "id": "6469828891",
+      "issue": 22,
+      "author": "shigol",
+      "revision": "e8cd74b8a98722cdab6aef1e61e04d9640651340",
+      "plan": {
+        "title": "Harmless cloud deadline and partial-work retention",
+        "limits": {
+          "max_runs": 1,
+          "max_minutes": 30,
+          "max_input_tokens": 1
+        },
+        "steps": [
+          {
+            "id": "partial",
+            "brief": "docs/continuity-fixtures/timeout-partial.md",
+            "attempts": 1,
+            "review": "required",
+            "sha256": "df53610004c8ed4f972dde5e4fb2ae5a628c155440a78982172d50e3ac7325d9"
+          }
+        ],
+        "path": "docs/continuity-fixtures/partial-plan.json",
+        "sha256": "fdc2820fee89c15512049f01df0f28f6dd54be726c62d9e17efa348604814bb0"
+      },
+      "status": "pending",
+      "step": 0,
+      "attempt": 0,
+      "total_runs": 0,
+      "input_tokens": 0,
+      "started_at": "2026-10-28T13:09:51.356Z",
+      "expires_at": "2026-10-28T13:39:51.356Z",
+      "observed_at": "2026-10-28T13:09:51.356Z",
+      "history": [],
+      "commands": [],
+      "message": "Plan registered; no worker is running yet.",
+      "contracts": [
+        {
+          "path": ".github/workflows/continuity-fixture.yml",
+          "sha256": "e51425b8dffb2bcd7aae4ee5efcc035557ca665817ba49d12c85ef06f8b5454a"
+        },
+        {
+          "path": ".github/workflows/continuity-controller.yml",
+          "sha256": "f02f8998bcdd8fda4a7301b457361008b0b96007485f958edb8f67143e7e5f63"
+        },
+        {
+          "path": "integrations/github/codex_continuity.cjs",
+          "sha256": "7aaf56d12949fda65667f6703ba38cf07f4aef2a389d323692d3bb4238ea8c16"
+        },
+        {
+          "path": "integrations/github/codex_task_run.py",
+          "sha256": "1bfcfe8ee99ab70b972c634f40a21ce8fcd4a9c15a6b5e3f0e3383cebac98e72"
+        },
+        {
+          "path": "integrations/github/codex_task_patch.py",
+          "sha256": "07ecd6a629ac7a09f9a66feaa2fa81f0f488eef5ad49fe321de7bfc5a6d28c96"
+        },
+        {
+          "path": "integrations/github/codex_result.cjs",
+          "sha256": "4ba5d7e6da38ffa0410cd39e8541661e8ee45d97803c9132b4deec7fccae57d2"
+        }
+      ]
     }
   ]
 }
