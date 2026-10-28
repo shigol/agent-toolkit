@@ -49,6 +49,21 @@ class BoundedRunTests(unittest.TestCase):
         self.assertEqual(data['input_tokens'], 175)
         self.assertTrue(data['usage_known'])
 
+    def test_installed_wrapper_does_not_create_bytecode_or_held_paths(self):
+        import shutil
+        scripts = self.root / '.github/scripts'
+        scripts.mkdir(parents=True)
+        for name in ('codex_task_run.py', 'codex_task_patch.py'):
+            shutil.copyfile(INTEGRATION / name, scripts / name)
+        self.git('add', '.')
+        self.git('commit', '-qm', 'Install trusted wrapper')
+        subprocess.run([sys.executable, str(scripts / 'codex_task_run.py'),
+                        '--output', str(self.output), '--', *self.command('print("read only")')],
+                       check=True, capture_output=True)
+        self.assertFalse((scripts / '__pycache__').exists())
+        self.assertEqual(self.git('status', '--porcelain'), b'')
+        self.assertEqual(json.loads((self.output / 'partial-report.json').read_text())['held'], [])
+
     def test_timeout_keeps_partial_work_and_does_not_stage_the_project(self):
         command = self.command("from pathlib import Path;import time;Path('docs').mkdir();Path('docs/partial.md').write_text('partial work\\n');print('started',flush=True);time.sleep(5)")
         self.assertEqual(runner.run(command, self.output, seconds=.4, stale_seconds=3, interval=.1), 124)

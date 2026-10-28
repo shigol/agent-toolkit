@@ -6,8 +6,11 @@ import os
 from pathlib import Path
 import signal
 import subprocess
+import sys
 import time
 
+# The trusted checkpoint import must not create a held project-file change.
+sys.dont_write_bytecode = True
 from codex_task_patch import snapshot
 
 
