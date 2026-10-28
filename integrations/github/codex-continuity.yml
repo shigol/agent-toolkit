@@ -10,13 +10,22 @@ on:
       completed_run:
         description: Optional same-repository worker whose actual completion must be observed
         default: ''
+      brief:
+        description: Optional committed Markdown brief for a monitored single task
+        default: ''
+      request_issue:
+        description: Required issue/PR number when registering a brief
+        default: ''
+      request_id:
+        description: Required stable numeric request ID; reuse it after an uncertain response
+        default: ''
 permissions:
   contents: write
   actions: write
   issues: write
   pull-requests: write
 concurrency:
-  group: ${{ github.event_name == 'issue_comment' && format('codex-continuity-intake-{0}', github.event.comment.id) || 'codex-continuity-controller' }}
+  group: ${{ github.event_name == 'issue_comment' && format('codex-continuity-intake-{0}', github.event.comment.id) || inputs.brief != '' && format('codex-continuity-intake-{0}', inputs.request_id) || 'codex-continuity-controller' }}
   cancel-in-progress: false
 jobs:
   reconcile:
@@ -34,6 +43,11 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
+          sparse-checkout: |
+            .github
+            docs
+            codex
+            tools
       - uses: actions/github-script@v7
         with:
           script: |

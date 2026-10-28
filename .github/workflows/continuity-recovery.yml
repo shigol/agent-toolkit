@@ -1,0 +1,82 @@
+name: Recover a fixed no-model result
+run-name: Recover Codex result ${{ inputs.source_run }}
+on:
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: Completed same-repository committed-brief worker run ID
+        required: true
+      request_issue:
+        description: Same-repository issue or PR for the recovery checkpoint
+        required: true
+permissions:
+  contents: write
+  actions: read
+  issues: write
+  pull-requests: write
+concurrency:
+  group: codex-result-recovery-${{ inputs.source_run }}
+  cancel-in-progress: false
+jobs:
+  recover:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          path: trusted
+          sparse-checkout: integrations/github
+      - name: Validate the actual completed worker and retained artifact
+        id: source
+        uses: actions/github-script@v7
+        env:
+          SOURCE_RUN: ${{ inputs.source_run }}
+          REQUEST_ISSUE: ${{ inputs.request_issue }}
+        with:
+          script: |
+            if (!/^[1-9][0-9]{0,9}$/.test(process.env.REQUEST_ISSUE)) throw Error('Invalid recovery issue');
+            const {validate} = require('./trusted/integrations/github/codex_recover.cjs');
+            const source = await validate({github, context, sourceRun: process.env.SOURCE_RUN, expectedWorkerPath: '.github/workflows/continuity-fixture.yml', executeStepName: 'Execute fixed harmless probe'});
+            core.setOutput('sha', source.sha);
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          path: candidate
+          sparse-checkout: |
+            src
+            public
+            scripts
+            tools
+            tests
+            docs
+            codex
+            catalogue
+      - uses: actions/download-artifact@v4
+        with:
+          name: codex-task-${{ inputs.source_run }}
+          run-id: ${{ inputs.source_run }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/codex-recovery
+      - name: Recover the existing patch as a review branch
+        id: save
+        working-directory: candidate
+        env:
+          SOURCE_RUN: ${{ inputs.source_run }}
+        run: |
+          python3 "$GITHUB_WORKSPACE/trusted/integrations/github/codex_task_patch.py" transport "$RUNNER_TEMP/codex-recovery/changes.patch" "codex/task-$SOURCE_RUN" "$SOURCE_RUN" >> "$GITHUB_OUTPUT"
+      - name: Report recovery without accepting the work or restarting inference
+        if: always() && steps.source.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          SOURCE_RUN: ${{ inputs.source_run }}
+          REQUEST_ISSUE: ${{ inputs.request_issue }}
+          SAVE_RESULT: ${{ steps.save.outcome }}
+          RESULT_BRANCH: ${{ steps.save.outputs.branch }}
+        with:
+          script: |
+            const branch = process.env.RESULT_BRANCH || 'none';
+            await github.rest.issues.createComment({...context.repo, issue_number: Number(process.env.REQUEST_ISSUE),
+              body: `Codex result recovery for run ${process.env.SOURCE_RUN}: transport=${process.env.SAVE_RESULT}; review branch=${branch}. Existing artifact only; no model inference was run. Held paths and source/skill evidence still need independent review. No merge, deployment, continuity acceptance or completion claim. Recovery log: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});

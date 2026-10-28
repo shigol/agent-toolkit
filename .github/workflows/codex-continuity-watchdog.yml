@@ -1,0 +1,32 @@
+name: Continuity no-model watchdog
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+  issues: write
+  pull-requests: write
+concurrency:
+  group: codex-continuity-controller
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const {controller} = require('./.github/scripts/continuity_controller.cjs');
+            await controller({github, context, worker: 'continuity-fixture.yml',
+              contractPaths: ['.github/workflows/continuity-fixture.yml', '.github/workflows/continuity-controller.yml',
+                '.github/workflows/codex-continuity-watchdog.yml',
+                'integrations/github/codex_continuity.cjs', 'integrations/github/codex_task_run.py',
+                'integrations/github/codex_task_patch.py', 'integrations/github/codex_result.cjs',
+                'integrations/github/codex_request.cjs']});

@@ -1,0 +1,1 @@
+Fixed harmless slow-start fixture. The trusted acceptance workflow delays entry into its no-model execution step for six minutes, so the independent active-only watchdog can observe an overdue start target. No user input is executed and no model is called.

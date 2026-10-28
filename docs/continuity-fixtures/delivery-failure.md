@@ -1,0 +1,1 @@
+Fixed harmless delivery-failure fixture. A fictional text checkpoint is retained in an artifact, then the result-stage transport is deliberately failed. No model, service credential, production change or inference retry. Recover the artifact through the fixed recovery adapter and review its branch.

@@ -23,6 +23,7 @@ jobs:
     if: >-
       github.event_name != 'issue_comment' ||
       startsWith(github.event.comment.body, '/codex-plan ') ||
+      startsWith(github.event.comment.body, '/codex-run ') ||
       startsWith(github.event.comment.body, '/codex-pause ') ||
       startsWith(github.event.comment.body, '/codex-resume ') ||
       startsWith(github.event.comment.body, '/codex-accept ') ||
@@ -40,7 +41,9 @@ jobs:
             const {controller, waitForPredecessor} = require('./.github/scripts/continuity_controller.cjs');
             await waitForPredecessor({github, repo: context.repo, value: context.payload.inputs?.completed_run || '',
               branch: context.payload.repository.default_branch, worker: 'continuity-fixture.yml'});
-            await controller({github, context, worker: 'continuity-fixture.yml', watchdog: false,
+            await controller({github, context, worker: 'continuity-fixture.yml',
               contractPaths: ['.github/workflows/continuity-fixture.yml', '.github/workflows/continuity-controller.yml',
+                '.github/workflows/codex-continuity-watchdog.yml',
                 'integrations/github/codex_continuity.cjs', 'integrations/github/codex_task_run.py',
-                'integrations/github/codex_task_patch.py', 'integrations/github/codex_result.cjs']});
+                'integrations/github/codex_task_patch.py', 'integrations/github/codex_result.cjs',
+                'integrations/github/codex_request.cjs']});

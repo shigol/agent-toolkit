@@ -26,7 +26,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       worker: ${{ steps.execute.outcome }}
       execution: ${{ steps.execute.outcome }}
@@ -35,6 +35,9 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
+      - name: Deliberately delay the fixed no-model execution step
+        if: inputs.brief == 'docs/continuity-fixtures/slow-start.md'
+        run: sleep 360
       - name: Execute fixed harmless probe
         id: execute
         continue-on-error: true
@@ -56,7 +59,7 @@ jobs:
     needs: run
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions:
       contents: write
       actions: write
@@ -74,16 +77,15 @@ jobs:
         id: save
         env:
           RESULT_BRANCH: codex/task-${{ github.run_id }}
+          BRIEF: ${{ inputs.brief }}
         run: |
+          if [ "$BRIEF" = 'docs/continuity-fixtures/delivery-failure.md' ]; then
+            echo 'Fixed fixture: delivery failure injected after successful execution and artifact retention.'
+            exit 1
+          fi
           patch="$RUNNER_TEMP/codex-task/changes.patch"
           if [ ! -s "$patch" ]; then exit 0; fi
-          python3 integrations/github/codex_task_patch.py apply "$patch"
-          git switch -c "$RESULT_BRANCH"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git -c core.hooksPath=/dev/null commit -m "Codex: save fictional continuity checkpoint" -m "Skills: none (deterministic fixture transport)"
-          git push origin "$RESULT_BRANCH"
-          echo "branch=$RESULT_BRANCH" >> "$GITHUB_OUTPUT"
+          python3 integrations/github/codex_task_patch.py transport "$patch" "$RESULT_BRANCH" "${{ github.run_id }}" >> "$GITHUB_OUTPUT"
       - name: Return typed result without claiming task acceptance
         if: always()
         uses: actions/github-script@v7

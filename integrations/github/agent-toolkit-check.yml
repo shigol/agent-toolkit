@@ -15,6 +15,10 @@ on:
       - .github/workflows/claude-wake.yml
       - .github/scripts/*skill_probe*
       - .github/workflows/codex-build.yml
+      - .github/workflows/codex-task.yml
+      - .github/workflows/codex-recover.yml
+      - .github/scripts/codex_recover.cjs
+      - .github/scripts/codex_task_patch.py
       - .github/workflows/agent-toolkit-*.yml
       - scripts/setup-agent-toolkit.sh
       - tools/setup-agent-toolkit.sh
@@ -33,6 +37,10 @@ on:
       - .github/workflows/claude-wake.yml
       - .github/scripts/*skill_probe*
       - .github/workflows/codex-build.yml
+      - .github/workflows/codex-task.yml
+      - .github/workflows/codex-recover.yml
+      - .github/scripts/codex_recover.cjs
+      - .github/scripts/codex_task_patch.py
       - .github/workflows/agent-toolkit-*.yml
       - scripts/setup-agent-toolkit.sh
       - tools/setup-agent-toolkit.sh

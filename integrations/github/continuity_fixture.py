@@ -17,6 +17,8 @@ def main(brief, request, output):
         'docs/continuity-fixtures/fail-once.md': 'fail-once',
         'docs/continuity-fixtures/always-fail.md': 'always-fail',
         'docs/continuity-fixtures/timeout-partial.md': 'timeout-partial',
+        'docs/continuity-fixtures/delivery-failure.md': 'delivery-failure',
+        'docs/continuity-fixtures/slow-start.md': 'slow-start',
     }
     mode = names.get(brief)
     if mode is None:
@@ -24,6 +26,9 @@ def main(brief, request, output):
     if mode == 'timeout-partial':
         source = "from pathlib import Path;import time;Path('docs/continuity-fixtures/partial-result.txt').write_text('Fictional partial checkpoint, retained before the deadline.\\n');print('partial saved',flush=True);time.sleep(30)"
         return run([sys.executable, '-u', '-c', source], output, seconds=1, stale_seconds=5, interval=.2)
+    if mode == 'delivery-failure':
+        source = "from pathlib import Path;import json;Path('docs/continuity-fixtures/delivery-checkpoint.txt').write_text('Fictional retained result; recover without inference.\\n');print(json.dumps({'type':'turn.completed','usage':{'input_tokens':0,'output_tokens':0}}))"
+        return run([sys.executable, '-u', '-c', source], output, seconds=10, stale_seconds=5, interval=.2)
     fail = mode == 'always-fail' or (mode == 'fail-once' and attempt == 1)
     source = "import json;print(json.dumps({'type':'turn.completed','usage':{'input_tokens':0,'output_tokens':0}}));raise SystemExit(" + ('1' if fail else '0') + ')'
     return run([sys.executable, '-u', '-c', source], output, seconds=10, stale_seconds=5, interval=.2)
