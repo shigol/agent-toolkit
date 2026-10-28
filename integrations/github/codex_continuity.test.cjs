@@ -523,3 +523,30 @@ test('a concurrent intake cannot leave an active plan with the watchdog disabled
     assert.ok(backend.state().records.some(record => ['dispatching', 'queued', 'running'].includes(record.status)));
   } finally { f.close(); }
 });
+
+test('explicit completion wakeup waits for the actual predecessor instead of trusting caller timing', async () => {
+  const {waitForPredecessor} = require('./codex_continuity.cjs');
+  const identity = {event: 'workflow_dispatch', head_branch: 'main', head_repository: {full_name: 'owner/project'},
+    path: '.github/workflows/codex-task.yml', head_sha: 'a'.repeat(40)};
+  let calls = 0, waits = 0;
+  const github = {rest: {actions: {getWorkflowRun: async () => ({data: {...identity,
+    status: ++calls === 1 ? 'in_progress' : 'completed', conclusion: calls === 1 ? null : 'success'}})}}};
+  const actual = await waitForPredecessor({github, repo: {owner: 'owner', repo: 'project'}, value: '123', branch: 'main',
+    sleep: async () => { waits += 1; }});
+  assert.equal(actual.status, 'completed'); assert.equal(calls, 2); assert.equal(waits, 1);
+});
+
+test('completion wakeup rejects other sources and stops its bounded API wait', async () => {
+  const {waitForPredecessor} = require('./codex_continuity.cjs');
+  const identity = {event: 'workflow_dispatch', head_branch: 'main', head_repository: {full_name: 'owner/project'},
+    path: '.github/workflows/codex-task.yml', head_sha: 'a'.repeat(40), status: 'in_progress', conclusion: null};
+  for (const change of [{head_branch: 'unreviewed'}, {head_repository: {full_name: 'other/fork'}},
+    {path: '.github/workflows/unrelated.yml'}, {event: 'pull_request'}]) {
+    const github = {rest: {actions: {getWorkflowRun: async () => ({data: {...identity, ...change}})}}};
+    await assert.rejects(waitForPredecessor({github, repo: {owner: 'owner', repo: 'project'}, value: '123', branch: 'main', sleep: async () => {}}), /Untrusted/);
+  }
+  let calls = 0;
+  const github = {rest: {actions: {getWorkflowRun: async () => { calls += 1; return {data: identity}; }}}};
+  await assert.rejects(waitForPredecessor({github, repo: {owner: 'owner', repo: 'project'}, value: '123', branch: 'main', polls: 2, sleep: async () => {}}), /not complete/);
+  assert.equal(calls, 2);
+});

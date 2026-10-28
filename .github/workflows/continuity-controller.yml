@@ -6,6 +6,10 @@ on:
     workflows: [Continuity harmless fixture]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      completed_run:
+        description: Fixed harmless predecessor run whose actual completion must be observed
+        default: ''
 permissions:
   contents: write
   actions: write
@@ -33,7 +37,9 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
-            const {controller} = require('./.github/scripts/continuity_controller.cjs');
+            const {controller, waitForPredecessor} = require('./.github/scripts/continuity_controller.cjs');
+            await waitForPredecessor({github, repo: context.repo, value: context.payload.inputs?.completed_run || '',
+              branch: context.payload.repository.default_branch, worker: 'continuity-fixture.yml'});
             await controller({github, context, worker: 'continuity-fixture.yml', watchdog: false,
               contractPaths: ['.github/workflows/continuity-fixture.yml', '.github/workflows/continuity-controller.yml',
                 'integrations/github/codex_continuity.cjs', 'integrations/github/codex_task_run.py',
