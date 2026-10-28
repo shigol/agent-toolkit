@@ -199,11 +199,11 @@
         }
       ],
       "comment_id": 6481446644,
-      "last_notice_at": "2026-10-28T21:44:56.126Z",
+      "last_notice_at": "2026-10-28T21:56:55.946Z",
       "deadline_notices": [
         "start"
       ],
-      "reported_status": "dispatching",
+      "reported_status": "blocked",
       "run_id": 40776034318,
       "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40776034318",
       "run_revision": "89975b59cbb1c890e1fd0ad496c0d72eebfbd301",
