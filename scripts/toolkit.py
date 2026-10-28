@@ -271,7 +271,7 @@ def verify_runtime(project=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['install', 'verify', 'status', 'emit-routes', 'init-project', 'bootstrap-global', 'verify-sources', 'setup-runtime', 'verify-runtime'])
+    parser.add_argument('command', choices=['install', 'verify', 'status', 'emit-routes', 'init-project', 'bootstrap-global', 'handoff-config', 'verify-sources', 'setup-runtime', 'verify-runtime'])
     parser.add_argument('target', nargs='?', type=Path, help='Git repository root for init-project')
     parser.add_argument('--project', type=Path)
     parser.add_argument('--agents', nargs='+', choices=['codex', 'claude'], default=['codex', 'claude'])
@@ -299,6 +299,9 @@ def main():
         verify_sources()
         home = args.codex_home or Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex')))
         print(json.dumps(bootstrap_global(ROOT, home), indent=2))
+    elif args.command == 'handoff-config':
+        from handoff import resolve
+        print(json.dumps(resolve(ROOT, args.project), indent=2))
     elif args.command == 'verify-sources':
         data = verify_sources()
         print(f'PASS: {len(data["files"])} vendored files match toolkit.lock.json')

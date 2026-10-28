@@ -34,6 +34,7 @@ jobs:
           node tests/browser-discovery.test.mjs
           node integrations/github/codex_request.test.cjs
           node integrations/github/codex_continuity.test.cjs
+          node integrations/github/claude_wake.test.cjs
       - name: Verify one-command setup on a fresh repository
         run: |
           target=$(mktemp -d)

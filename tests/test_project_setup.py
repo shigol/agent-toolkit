@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from test_toolkit import toolkit
 import project_setup
+from handoff import resolve as resolve_handoff
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -66,6 +67,9 @@ class ProjectSetupTests(unittest.TestCase):
         self.assertTrue((self.project / '.github/scripts/codex_task_run.py').is_file())
         subprocess.run(['node', str(self.project / '.github/scripts/codex_continuity.test.cjs')],
                        cwd=self.project, check=True, stdout=subprocess.DEVNULL)
+        self.assertTrue((self.project / '.github/workflows/claude-wake.yml').is_file())
+        subprocess.run(['node', str(self.project / '.github/scripts/claude_wake.test.cjs')],
+                       cwd=self.project, check=True, stdout=subprocess.DEVNULL)
         before = (self.project / 'CLAUDE.md').read_bytes()
         self.initialize()
         self.assertEqual(before, (self.project / 'CLAUDE.md').read_bytes())
@@ -97,6 +101,25 @@ class ProjectSetupTests(unittest.TestCase):
         self.assertIn('**Do not use when:** General prose editing', guide)
         self.assertIn('**Use when:** A development task', guide)
 
+    def test_unrelated_future_projects_and_global_fallback_discover_shared_gateway(self):
+        self.initialize()
+        other = Path(self.tmp.name) / 'different future project'
+        other.mkdir()
+        self.git(other, 'init', '--quiet')
+        project_setup.init_project(other, self.source, source=str(self.source))
+        for project in (self.project, other):
+            result = resolve_handoff(project / '.agent-toolkit', project)
+            self.assertEqual(result['gateway_repository'], 'shigol/career')
+            self.assertEqual(result['gateway_issue'], 1)
+            self.assertEqual(result['credentials'], 'not_checked')
+            self.assertFalse((project / '.agent-handoff.json').exists())
+        home = Path(self.tmp.name) / 'new global-only host'
+        project_setup.bootstrap_global(self.source, home)
+        text = (home / 'AGENTS.md').read_text()
+        self.assertIn(str(self.source) + '/CONTINUITY.md', text)
+        self.assertIn('handoff-config', (self.source / 'CONTINUITY.md').read_text())
+        self.assertEqual(resolve_handoff(self.source)['gateway_repository'], 'shigol/career')
+
     def test_conflicting_integration_is_preserved_before_clone(self):
         path = self.project / '.github/dependabot.yml'
         path.parent.mkdir()
@@ -106,6 +129,16 @@ class ProjectSetupTests(unittest.TestCase):
         self.assertFalse((self.project / '.agent-toolkit').exists())
         self.assertFalse((self.project / '.gitmodules').exists())
         self.assertIn('Keep my existing', path.read_text())
+
+    def test_existing_claude_wake_workflow_is_not_overwritten(self):
+        path = self.project / '.github/workflows/claude-wake.yml'
+        path.parent.mkdir(parents=True)
+        original = 'name: Keep my existing Claude integration\n'
+        path.write_text(original)
+        with self.assertRaisesRegex(ValueError, 'Existing integration differs'):
+            self.initialize()
+        self.assertEqual(path.read_text(), original)
+        self.assertFalse((self.project / '.agent-toolkit').exists())
 
     def test_failed_install_rolls_back_files_submodule_and_own_index_entries(self):
         readme = self.project / 'README.md'

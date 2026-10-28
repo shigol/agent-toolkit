@@ -41,6 +41,8 @@ Connected repositories can also accept an unattended brief request. Commit a Mar
 
 For work expected to continue after the chat, use the writer-only `/codex-plan docs/plan.json` handoff described in [CONTINUITY.md](CONTINUITY.md). It records a bounded plan, actual worker state and review checkpoints, and enables recovery monitoring. The legacy single-brief command alone does not register that durable plan.
 
+When Claude's work is needed, the nonsecret HANDOFF.json profile locates the shared private gateway; `toolkit.py handoff-config` resolves it for existing, new and global-only projects. The dormant `/claude-wake` integration starts a fresh routine session only after separate [routine setup](docs/CLAUDE-WAKE-SETUP.md). It does not copy credentials or prove live access. Provider acceptance and task completion remain separate states.
+
 Acceptance probes can be dispatched with mode native or global. The global fixture contains no project toolkit or native skill links. The shared grader counts complete successful source output, real fixture checks, answer correctness and aggregate usage. Normal task artifacts also compare declared names with observed source reads; unknown names remain unverified, and partial Humanizer reads count only in explicitly short-prose audits.
 
 For the separate quality experiment, mode value-smoke records one factual outreach pair. Inspect its source-read evidence and actual usage before mode value expands to18 calls across prose, verification and static UI. A/B positions are shuffled, and outputs are separated from the private condition map and read traces. Only valid pairs belong in an independent blind judgement; the runner does not claim a value benefit.

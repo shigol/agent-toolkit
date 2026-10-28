@@ -57,6 +57,18 @@ This does not detect promises made in unregistered chats, create account-level i
 
 The legacy `/codex-run` command still submits one bounded worker and does not register a durable plan. Use `/codex-plan` for a multi-step or recovery-monitored handoff. Unregistered legacy/manual requests can still be limited by their existing runner/concurrency behaviour; this controller does not retroactively claim to own them.
 
+## Wake Claude when its work is needed
+
+When the user's existing authorization requires Claude's review or another owned task, resolve the nonsecret shared gateway with `python3 scripts/toolkit.py handoff-config` (or the equivalent pinned .agent-toolkit path). This reads HANDOFF.json from the shared library; `--project PATH` honors a project's .agent-handoff.json override or disabled flag. New project initialization and global-only fallback use that same library profile, without copying old thread state or credentials. Resolved metadata explicitly does not check credentials or live provider access.
+
+The agent writes a committed brief under the resolved gateway's brief directory and submits `/claude-wake docs/path.md` to its issue. Eugene does not relay between agents. This starts a fresh routine session which reads current project rules and shared coordination state; it does not resume an old thread. See the [routine setup and prompt](docs/CLAUDE-WAKE-SETUP.md).
+
+The trusted default-branch bridge allows only repository writers, a committed regular Markdown brief and the fixed official routine-fire endpoint. It reserves the immutable comment ID on `claude/wake-state` before sending one request. It stores only dispatch metadata and a validated session link, never the brief text or token. Missing configuration sends nothing. Provider acceptance means submitted, not started or complete; wait for an actual worker acknowledgment and reviewed result links in the coordination record.
+
+One reserved/submitted/unconfirmed wake holds the repository slot until a writer independently investigates and sends `/claude-wake-close REQUEST_ID`. Closing releases a dispatch slot; it does not certify task completion. The originating dispatch workflow must already have stopped. A lost runner, timeout, 5xx response or ambiguous success never causes a blind retry or automatic age-based reset. Initial limits are four outbound attempts per rolling 24 hours and a 15-minute cooldown, with 32 hot records and immutable archives; changing these lean defaults requires a reviewed code change. No model runs to poll another model, and this does not create an agent-to-agent recursive loop.
+
+`init-project` copies the dormant bridge into future projects without replacing an existing integration. Existing projects need a reviewed workflow/helper adoption; a toolkit pin alone does not install it. One private gateway can serve connected projects with one routine-specific secret pair. Only the routine UI can create that token; no cookies, raw provider API key or credentials copied from another host are used. The bridge remains inactive until configured. This installation does not establish live provider access or a working routine by itself.
+
 ## Acceptance before claiming unattended reliability
 
 Submit a harmless task, disconnect the workstation and inspect a cloud-side result. Then test a worker timeout, stale heartbeat, failed authentication, a retried task and partial-work recovery. Confirm that the next eligible step starts once, saves its checkpoint and respects its budget. A status must distinguish actual execution, completed work and an unresolved gap. No system can guarantee no failure; the goal is to prevent a silent stop and make recovery observable.
