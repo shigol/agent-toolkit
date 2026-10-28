@@ -134,20 +134,20 @@
           }
         ]
       },
-      "status": "dispatching",
+      "status": "initializing",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
       "input_tokens": 0,
       "started_at": "2026-10-28T22:19:24.133Z",
       "expires_at": "2026-10-28T23:34:24.133Z",
-      "observed_at": "2026-10-28T22:19:35.780Z",
+      "observed_at": "2026-10-28T22:19:50.737Z",
       "monitor_epoch": 0,
       "start_due_at": "2026-10-28T22:24:24.133Z",
       "response_due_at": "2026-10-28T22:34:24.133Z",
       "history": [],
       "commands": [],
-      "message": "Dispatch accepted; waiting to verify the actual run.",
+      "message": "Workflow is active, but the actual execution step has not started.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -200,9 +200,9 @@
         "key": "0:0:0",
         "observed_at": "2026-10-28T22:19:35.780Z"
       },
-      "run_id": null,
-      "run_url": "",
-      "run_revision": null,
+      "run_id": 40779101382,
+      "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40779101382",
+      "run_revision": "97df0c26a4f74264214f74f644b7ef6457e98728",
       "request_id": "continuity-6482117204-0-1",
       "dispatched_at": "2026-10-28T22:19:35.780Z"
     },
