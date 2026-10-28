@@ -441,7 +441,7 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
     // independently dispatched, bounded no-model monitor is observably executing.
     monitorReady = false;
     const monitoring = (await github.rest.actions.listWorkflowRuns({...repo,
-      workflow_id: 'codex-monitor.yml', per_page: 20})).data.workflow_runs;
+      workflow_id: 'codex-monitor.yml', status: 'in_progress', per_page: 20})).data.workflow_runs;
     for (const run of monitoring.filter(item => item.status === 'in_progress'
         && item.event === 'workflow_dispatch' && item.head_branch === event.repository.default_branch
         && item.path === '.github/workflows/codex-monitor.yml'
