@@ -146,16 +146,27 @@ test('diagnostics bound nested shapes and preserve malformed scalar/id/url holds
   }
 });
 
-test('legacy-prefix and nested diagnostics remain booleans, not an acceptance alias', async () => {
-  const body = {type: 'routine_fire', claude_code_session_id: 'cse_private',
+test('legacy-prefix diagnostics do not bypass the required response type', async () => {
+  const body = {type: 'experimental', claude_code_session_id: 'cse_private',
     claude_code_session_url: 'https://claude.ai/code/cse_private', data: {session_id: 'cse_private', session_url: 'https://claude.ai/code/cse_private'}};
   const result = await fire({url: URL, token: TOKEN, text: 'x', fetcher: async () => new Response(JSON.stringify(body))});
   assert.equal(result.status, 'unconfirmed');
   assert.equal(result.response_shape.id_shapes.claude_code_session_id.cse_prefix, true);
   assert.equal(result.response_shape.url_shapes.claude_code_session_url.cse_path, true);
   assert.equal(result.response_shape.containers.data.id_shapes.session_id.cse_prefix, true);
-  assert.equal(result.response_shape.expected_id_format_matches, false);
+  assert.equal(result.response_shape.expected_id_format_matches, true);
   assert.ok(!JSON.stringify(result).includes('cse_private'));
+});
+
+test('observed cse sessions require the same bounded ID and exact canonical host/path', async () => {
+  const valid = {type: 'routine_fire', claude_code_session_id: 'cse_fixture',
+    claude_code_session_url: 'https://claude.ai/code/cse_fixture'};
+  const call = body => fire({url: URL, token: TOKEN, text: 'x', fetcher: async () => new Response(JSON.stringify(body))});
+  assert.deepEqual(await call(valid), {status: 'submitted', http_status: 200, session_url: valid.claude_code_session_url});
+  for (const change of [{claude_code_session_url: 'https://claude.ai/code/cse_different'},
+    {claude_code_session_url: 'https://evil.example/code/cse_fixture'},
+    {claude_code_session_id: ['cse_fixture']}, {claude_code_session_id: 'cse_' + 'a'.repeat(129)},
+    {claude_code_session_url: valid.claude_code_session_url + '?extra=1'}]) assert.equal((await call({...valid, ...change})).status, 'unconfirmed');
 });
 
 test('a diagnostic-bearing unconfirmed result remains durably held and never repeats the POST', async t => {

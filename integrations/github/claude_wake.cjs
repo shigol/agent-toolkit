@@ -57,9 +57,9 @@ function responseShape(body) {
       string_fields: keys.filter(key => typeof value[key] === 'string'),
       object_fields: keys.filter(key => object(value[key])),
       expected_type_matches: value.type === 'routine_fire',
-      expected_id_format_matches: typeof id === 'string' && /^session_[A-Za-z0-9_-]{1,128}$/.test(id),
-      expected_url_format_matches: typeof url === 'string' && /^https:\/\/claude\.ai\/code\/session_[A-Za-z0-9_-]{1,128}$/.test(url),
-      expected_url_matches_id: typeof id === 'string' && /^session_[A-Za-z0-9_-]{1,128}$/.test(id) && url === `https://claude.ai/code/${id}`,
+      expected_id_format_matches: typeof id === 'string' && /^(?:session|cse)_[A-Za-z0-9_-]{1,128}$/.test(id),
+      expected_url_format_matches: typeof url === 'string' && /^https:\/\/claude\.ai\/code\/(?:session|cse)_[A-Za-z0-9_-]{1,128}$/.test(url),
+      expected_url_matches_id: typeof id === 'string' && /^(?:session|cse)_[A-Za-z0-9_-]{1,128}$/.test(id) && url === `https://claude.ai/code/${id}`,
       id_shapes: Object.fromEntries(['claude_code_session_id', 'session_id', 'id'].filter(key => Object.hasOwn(value, key))
         .map(key => [key, {session_prefix: typeof value[key] === 'string' && /^session_[A-Za-z0-9_-]{1,128}$/.test(value[key]),
           cse_prefix: typeof value[key] === 'string' && /^cse_[A-Za-z0-9_-]{1,128}$/.test(value[key])}])),
@@ -91,7 +91,8 @@ async function fire({url, token, text, fetcher = fetch}) {
       chunks.push(chunk);
     }
     const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    if (body === null || body.type !== 'routine_fire' || !/^session_[A-Za-z0-9_-]{1,128}$/.test(body.claude_code_session_id)
+    if (body === null || body.type !== 'routine_fire' || typeof body.claude_code_session_id !== 'string'
+        || !/^(?:session|cse)_[A-Za-z0-9_-]{1,128}$/.test(body.claude_code_session_id)
         || body.claude_code_session_url !== `https://claude.ai/code/${body.claude_code_session_id}`) {
       return {status: 'unconfirmed', http_status: 200, response_shape: responseShape(body)};
     }

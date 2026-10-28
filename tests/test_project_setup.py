@@ -97,8 +97,21 @@ class ProjectSetupTests(unittest.TestCase):
         workflow.parent.mkdir()
         workflow.write_text('name: Fixture\n')
         (scripts / 'claude_wake.test.cjs').write_text('require("node:fs").writeFileSync("bridge-test-ran", "yes");\n')
+        pinned = self.project / '.agent-toolkit/integrations/github'
+        pinned.mkdir(parents=True)
+        for name in ('claude_wake.cjs', 'claude_wake.test.cjs'):
+            shutil.copyfile(scripts / name, pinned / name)
+        shutil.copyfile(workflow, pinned / workflow.name)
         self.assertEqual(run().returncode, 0)
         self.assertTrue((self.project / 'bridge-test-ran').is_file())
+        for installed in (scripts / 'claude_wake.cjs', scripts / 'claude_wake.test.cjs', workflow):
+            original = installed.read_text()
+            installed.write_text(original + '# changed managed fixture\n')
+            self.assertNotEqual(run().returncode, 0)
+            installed.write_text(original)
+        (pinned / 'claude_wake.cjs').unlink()
+        self.assertNotEqual(run().returncode, 0)  # An older toolkit pin has no managed bridge template.
+        shutil.copyfile(scripts / 'claude_wake.cjs', pinned / 'claude_wake.cjs')
         workflow.unlink()
         workflow.symlink_to('missing.yml')
         self.assertNotEqual(run().returncode, 0)
@@ -106,6 +119,11 @@ class ProjectSetupTests(unittest.TestCase):
         for value in ('.agent-handoff.json', '.github/scripts/claude_*', '.github/workflows/claude-wake.yml'):
             self.assertIn('      - ' + value, text)
         self.assertIn('            .github/workflows\n', text)
+        events = [re.search(r'  ' + event + r':\n    paths:\n((?:      - [^\n]+\n)+)', text).group(1)
+                  for event in ('pull_request', 'push')]
+        self.assertEqual(events[0], events[1])
+        self.assertIn("if: github.event_name != 'push' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)", text)
+        self.assertLess(text.index('Verify installed Claude wake bridge'), text.index('Verify fresh installation'))
 
     def test_existing_selection_is_preserved(self):
         config = {'schema': 1, 'groups': ['writing'], 'native_limit': 1}
