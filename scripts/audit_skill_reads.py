@@ -9,6 +9,15 @@ from selection_probe import source_reads
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def humanizer_pattern_lines(body):
+    headings = list(re.finditer(r'^### (\d+)\..+$', body, re.M))
+    if [int(heading.group(1)) for heading in headings] != list(range(1, 27)):
+        return set()
+    following = re.search(r'^## ', body[headings[-1].end():], re.M)
+    end = headings[-1].end() + following.start() if following else len(body)
+    return {line.strip() for line in body[headings[0].start():end].splitlines() if line.strip()}
+
+
 def audit(events, answer, root=ROOT, short_prose=False):
     reads = source_reads(events, root)
     declarations = re.findall(r'^\s*(?:\*\*)?Skills:(?:\*\*)?\s*(.+)$', answer, re.M | re.I)
@@ -23,7 +32,7 @@ def audit(events, answer, root=ROOT, short_prose=False):
     manifest = json.loads((root / 'toolkit.lock.json').read_text())
     humanizer = next(s for s in manifest['skills'] if s['name'] == 'humanizer')
     if short_prose and reads['humanizer']['state'] == 'partial':
-        headings = re.findall(r'^### \d+\..+$', (root / humanizer['path'] / 'SKILL.md').read_text(), re.M)
+        patterns = humanizer_pattern_lines((root / humanizer['path'] / 'SKILL.md').read_text())
         outputs = '\n'.join(row.get('item', {}).get('aggregated_output', '') for row in events
                             if row.get('type') == 'item.completed'
                             and row.get('item', {}).get('type') == 'command_execution'
@@ -31,7 +40,10 @@ def audit(events, answer, root=ROOT, short_prose=False):
                             and 'SKILL.md' in row['item'].get('command', '')
                             and (humanizer['path'] in row['item']['command']
                                  or 'skills/humanizer/' in row['item']['command']))
-        if len(headings) == 26 and all(heading in outputs for heading in headings):
+        covered = sum(line in outputs for line in patterns)
+        reads['humanizer']['pattern_covered_unique_lines'] = covered
+        reads['humanizer']['pattern_total_unique_lines'] = len(patterns)
+        if patterns and covered == len(patterns):
             reads['humanizer']['state'] = 'short_prose_patterns'
     insufficient = [name for name in claims if name in reads and reads[name]['state'] not in ('full', 'short_prose_patterns')]
     unknown = [name for name in claims if name not in reads]
