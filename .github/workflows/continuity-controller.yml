@@ -34,4 +34,7 @@ jobs:
         with:
           script: |
             const {controller} = require('./.github/scripts/continuity_controller.cjs');
-            await controller({github, context, worker: 'continuity-fixture.yml', watchdog: false});
+            await controller({github, context, worker: 'continuity-fixture.yml', watchdog: false,
+              contractPaths: ['.github/workflows/continuity-fixture.yml', '.github/workflows/continuity-controller.yml',
+                'integrations/github/codex_continuity.cjs', 'integrations/github/codex_task_run.py',
+                'integrations/github/codex_task_patch.py', 'integrations/github/codex_result.cjs']});

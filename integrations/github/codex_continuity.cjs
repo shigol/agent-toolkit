@@ -11,6 +11,22 @@ const MAX_STATE_BYTES = 262144;
 const hash = data => crypto.createHash('sha256').update(data).digest('hex');
 const iso = ms => new Date(ms).toISOString();
 
+function contractHashes(root, files) {
+  if (!Array.isArray(files) || files.length > 10) throw Error('Invalid worker contract');
+  const base = fs.realpathSync(root);
+  return files.map(name => {
+    if (typeof name !== 'string' || name.length > 240 || path.isAbsolute(name)
+        || name.split('/').some(part => !part || part === '.' || part === '..')) throw Error('Invalid worker contract path');
+    let target = base;
+    for (const part of name.split('/')) {
+      target = path.join(target, part);
+      if (fs.lstatSync(target).isSymbolicLink()) throw Error('Symlinked worker contracts are not supported');
+    }
+    if (!fs.statSync(target).isFile() || fs.statSync(target).size > 65536) throw Error('Invalid worker contract file');
+    return {path: name, sha256: hash(fs.readFileSync(target))};
+  });
+}
+
 function regular(root, value, extension) {
   if (typeof value !== 'string' || value.length > 240 || !new RegExp(`^(?:codex|docs|tools)/[A-Za-z0-9_./-]+\\.${extension}$`).test(value)
       || value.split('/').some(p => !p || p.startsWith('.'))) throw Error('Invalid committed path');
@@ -105,7 +121,7 @@ function advance(record, observed, now) {
   }
   if (TERMINAL.has(next.status)) return {record: next, effects};
   if (observed.changed) {
-    next.status = 'paused'; next.message = 'The committed plan or brief changed. Submit a newly reviewed plan to continue.';
+    next.status = 'paused'; next.message = 'The committed plan, brief or worker contract changed. Submit a newly reviewed plan to continue.';
     if (observed.run && observed.run.status !== 'completed') effects.push({type: 'cancel', id: observed.run.id});
     return {record: next, effects};
   }
@@ -131,6 +147,7 @@ function advance(record, observed, now) {
     return {record: next, effects};
   }
   next.run_id = run.id; next.run_url = run.html_url;
+  next.run_revision = run.head_sha || null;
   if (run.status !== 'completed') {
     next.status = run.status === 'queued' || run.status === 'waiting' ? 'queued' : 'running';
     next.message = next.status === 'queued' ? 'Actions run verified queued; execution has not started.' : 'Actions run verified active; this is not a completion claim.';
@@ -149,7 +166,7 @@ function advance(record, observed, now) {
     return {record: next, effects};
   }
   if (next.history.some(x => x.run_id === run.id)) return {record: next, effects};
-  next.history.push({run_id: run.id, request_id: next.request_id, result, recorded_at: iso(now)});
+  next.history.push({run_id: run.id, revision: run.head_sha || null, request_id: next.request_id, result, recorded_at: iso(now)});
   next.input_tokens += result.input_tokens;
   next.usage_unknown ||= !result.usage_known;
   next.branch = result.branch || '';
@@ -255,11 +272,14 @@ async function report(github, repo, record) {
   record.reported_status = record.status;
 }
 
-async function controller({github, context, root = process.cwd(), now = Date.now(), worker = 'codex-task.yml', watchdog = true, store}) {
+async function controller({github, context, root = process.cwd(), now = Date.now(), worker = 'codex-task.yml', watchdog = true, contractPaths, store}) {
   const repo = context.repo;
   store ||= new Store(github, repo);
   const state = await store.load();
   const event = context.payload;
+  contractPaths ||= [`.github/workflows/${worker}`, '.github/workflows/codex-continuity.yml',
+    '.github/workflows/codex-continuity-watchdog.yml', '.github/scripts/codex_continuity.cjs',
+    '.github/scripts/codex_task_run.py', '.github/scripts/codex_task_patch.py', '.github/scripts/codex_result.cjs'];
   async function enableWatchdog() {
     if (watchdog && state.watchdog_enabled !== true) {
       // Arm independent recovery before saving runnable work or dispatching a model.
@@ -282,7 +302,9 @@ async function controller({github, context, root = process.cwd(), now = Date.now
         }
         const plan = loadPlan(root, command.value);
         await enableWatchdog();
-        state.records.push(createRecord(plan, id, event.issue.number, event.comment.user.login, process.env.GITHUB_SHA || '', now));
+        const record = createRecord(plan, id, event.issue.number, event.comment.user.login, process.env.GITHUB_SHA || '', now);
+        record.contracts = contractHashes(root, contractPaths);
+        state.records.push(record);
         await store.save(state);
       }
     } else {
@@ -336,7 +358,8 @@ async function controller({github, context, root = process.cwd(), now = Date.now
     let changed = false;
     try {
       changed = hash(regular(root, record.plan.path, 'json')) !== record.plan.sha256
-        || record.plan.steps.some(step => hash(regular(root, step.brief, 'md')) !== step.sha256);
+        || record.plan.steps.some(step => hash(regular(root, step.brief, 'md')) !== step.sha256)
+        || JSON.stringify(contractHashes(root, record.contracts.map(item => item.path))) !== JSON.stringify(record.contracts);
     } catch { changed = true; }
     let run = null, result = null;
     if (record.request_id && record.status !== 'pending' && record.status !== 'retry') {
@@ -344,6 +367,7 @@ async function controller({github, context, root = process.cwd(), now = Date.now
       const matches = runs.filter(item => item.event === 'workflow_dispatch'
         && item.head_branch === event.repository.default_branch
         && item.head_repository?.full_name === `${repo.owner}/${repo.repo}`
+        && /^[a-f0-9]{40}$/.test(item.head_sha || '')
         && item.display_title.startsWith(`Codex request ${record.request_id} `));
       if (matches.length > 1) {
         for (const item of matches) if (item.status !== 'completed') await github.rest.actions.cancelWorkflowRun({...repo, run_id: item.id});
@@ -361,7 +385,7 @@ async function controller({github, context, root = process.cwd(), now = Date.now
       if (run && run.status !== 'completed') {
         await github.rest.actions.cancelWorkflowRun({...repo, run_id: run.id}).catch(e => { if (![409, 422].includes(e.status)) throw e; });
       } else if (run && result && !record.history.some(x => x.run_id === run.id)) {
-        record.history.push({run_id: run.id, request_id: record.request_id, result, recorded_at: iso(now)});
+        record.history.push({run_id: run.id, revision: run.head_sha || null, request_id: record.request_id, result, recorded_at: iso(now)});
         record.input_tokens += result.input_tokens;
         record.usage_unknown ||= !result.usage_known;
         record.run_id = run.id; record.run_url = run.html_url; record.observed_at = iso(now);
@@ -406,4 +430,4 @@ async function controller({github, context, root = process.cwd(), now = Date.now
   return state;
 }
 
-module.exports = {STATE_REF, STATE_FILE, regular, loadPlan, parse, createRecord, receipt, advance, Store, summary, controller};
+module.exports = {STATE_REF, STATE_FILE, regular, loadPlan, parse, createRecord, receipt, advance, Store, summary, controller, contractHashes};

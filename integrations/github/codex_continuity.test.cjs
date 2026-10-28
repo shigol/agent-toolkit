@@ -10,6 +10,12 @@ function fixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'continuity-'));
   fs.mkdirSync(path.join(root, 'docs'));
   fs.writeFileSync(path.join(root, 'docs/a.md'), 'Check the harmless fixture.');
+  for (const name of ['.github/workflows/codex-task.yml', '.github/workflows/codex-continuity.yml',
+    '.github/workflows/codex-continuity-watchdog.yml', '.github/scripts/codex_continuity.cjs',
+    '.github/scripts/codex_task_run.py', '.github/scripts/codex_task_patch.py', '.github/scripts/codex_result.cjs']) {
+    fs.mkdirSync(path.dirname(path.join(root, name)), {recursive: true});
+    fs.writeFileSync(path.join(root, name), 'Trusted fixture contract.\n');
+  }
   const source = {schema: 1, title: 'Fixture only', limits: {max_runs: 4, max_minutes: 90, max_input_tokens: 1000},
     steps: [{id: 'first', brief: 'docs/a.md', attempts: 2, review: 'none'},
       {id: 'second', brief: 'docs/a.md', attempts: 2, review: 'none'}]};
@@ -165,6 +171,7 @@ function service() {
     listWorkflowRuns: async () => ({data: {workflow_runs: runs}}),
     createWorkflowDispatch: async call => { calls.push(call); runs.push({id: 3, status: 'in_progress', event: 'workflow_dispatch',
       head_branch: 'main', head_repository: {full_name: 'owner/project'},
+      head_sha: 'b'.repeat(40),
       display_title: `Codex request ${call.inputs.request_id} — ${call.inputs.brief}`, html_url: 'https://example.invalid/run/3'}); },
     cancelWorkflowRun: async call => calls.push({cancel: call.run_id})},
   repos: {getCollaboratorPermissionLevel: async () => ({data: {permission: 'read'}})},
@@ -318,6 +325,22 @@ test('independent watchdog is armed before any external model dispatch', async (
   try {
     await controller({github: api.github, context: context(), root: f.root, store, now});
     assert.deepEqual(order, ['watchdog', 'worker']);
+  } finally { f.close(); }
+});
+
+test('unrelated main changes do not invalidate a plan, but worker permission/source changes do', async () => {
+  const f = fixture(), api = service(), store = new MemoryStore();
+  try {
+    await controller({github: api.github, context: context(), root: f.root, store, now});
+    fs.writeFileSync(path.join(f.root, 'docs/unrelated.md'), 'Unrelated daily data update.');
+    api.runs[0].head_sha = 'c'.repeat(40);
+    await controller({github: api.github, context: context(), root: f.root, store, now: now + 1000});
+    assert.equal(store.value.records[0].status, 'running');
+    assert.equal(store.value.records[0].run_revision, 'c'.repeat(40));
+    fs.appendFileSync(path.join(f.root, '.github/workflows/codex-task.yml'), 'Changed worker permissions.');
+    await controller({github: api.github, context: context(), root: f.root, store, now: now + 2000});
+    assert.equal(store.value.records[0].status, 'paused');
+    assert.equal(api.calls.at(-1).cancel, 3);
   } finally { f.close(); }
 });
 
