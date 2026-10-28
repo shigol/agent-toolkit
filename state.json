@@ -354,7 +354,7 @@
       "delivery_run": 40780591244
     }
   ],
-  "watchdog_enabled": true,
+  "watchdog_enabled": false,
   "monitor_requested_at": "2026-10-28T22:19:33.772Z",
   "monitor_message": "Monitor requested; waiting to verify its actual execution step.",
   "monitor_run_id": 40779074582,
