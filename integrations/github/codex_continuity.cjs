@@ -81,7 +81,7 @@ function loadPlan(root, file) {
 function loadBriefPlan(root, file) {
   const digest = hash(regular(root, file, 'md'));
   return {kind: 'brief', title: `Committed brief: ${file}`, path: file, sha256: digest,
-    limits: {max_runs: 1, max_minutes: 60, max_input_tokens: 1000000},
+    limits: {max_runs: 1, max_minutes: 75, max_input_tokens: 1000000},
     steps: [{id: 'task', brief: file, attempts: 1, review: 'required', sha256: digest}]};
 }
 
@@ -173,7 +173,7 @@ function advance(record, observed, now) {
     next.message = next.status === 'queued' ? 'Actions run verified queued; execution has not started.'
       : next.status === 'initializing' ? 'Workflow is active, but the actual execution step has not started.'
         : 'Actual execution step verified started; this is not a completion claim.';
-    if (run.run_started_at && now - Date.parse(run.run_started_at) > 50 * 60000) {
+    if (run.run_started_at && now - Date.parse(run.run_started_at) > 65 * 60000) {
       effects.push({type: 'cancel', id: run.id});
       next.message = 'Active run exceeded the worker deadline; cancellation requested. Waiting for its saved result.';
     }

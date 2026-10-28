@@ -255,7 +255,9 @@ test('source drift and stale workers produce a pause/cancel instead of silent co
     const drift = advance(item, {changed: true, run: {...completed(), status: 'in_progress'}}, now + 1000);
     assert.equal(drift.record.status, 'paused');
     assert.equal(drift.effects[0].type, 'cancel');
-    const stale = advance(item, {run: {...completed(), status: 'in_progress', run_started_at: new Date(now).toISOString()}}, now + 51 * 60000);
+    const saving = advance(item, {run: {...completed(), status: 'in_progress', run_started_at: new Date(now).toISOString()}}, now + 55 * 60000);
+    assert.equal(saving.effects.length, 0, 'valid worker plus result-stage budget must not be cut short');
+    const stale = advance(item, {run: {...completed(), status: 'in_progress', run_started_at: new Date(now).toISOString()}}, now + 66 * 60000);
     assert.equal(stale.effects[0].type, 'cancel');
   } finally { f.close(); }
 });
