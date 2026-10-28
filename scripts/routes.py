@@ -23,7 +23,7 @@ def block(root, selected):
     lines = [START,
              'Before edits/drafts, fully read matching SKILL.md; one primary UI workflow. '
              'Missing coverage: .agent-toolkit/catalog/README.md, then search. Project rules/templates win. '
-             'Humanizer: ### patterns before reporting work (code too); full source for docs/outside messages. Keep facts/quotes/evidence.']
+             'Humanizer: read ### sections with bodies for work reports; full source for docs/outside messages. Keep facts/quotes/evidence.']
     for route, names in automatic.items():
         lines.append('- ' + route + ': ' + ', '.join(names))
     for route, names in restricted.items():

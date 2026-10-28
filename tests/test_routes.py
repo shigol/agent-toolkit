@@ -37,12 +37,22 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(actual, (self.project / 'CLAUDE.md').read_text())
         self.assertTrue(actual.startswith(routes.START))
         self.assertTrue(actual.endswith(local_rules))
+        clear = 'Humanizer: read ### sections with bodies for work reports;'
+        old = 'Humanizer: ### patterns before reporting work (code too);'
+        self.assertIn(clear, actual)
+        self.assertEqual(len(clear.encode()) - len(old.encode()), 1)
         for name in ('humanizer', 'systematic-debugging', 'verification-before-completion'):
             self.assertIn(': ' + name + '\n', actual)
         self.assertNotIn(': impeccable\n', actual)
         toolkit.emit_routes(self.project, ['codex', 'claude'], check=True)
         toolkit.install(self.project, ['codex', 'claude'])
         self.assertEqual(actual, (self.project / 'AGENTS.md').read_text())
+        header = self.project / 'CLAUDE.md'
+        header.write_text(actual.replace(clear, old))
+        with self.assertRaisesRegex(RuntimeError, 'Stale route'):
+            toolkit.verify(self.project, ['claude'])
+        toolkit.install(self.project, ['claude'])
+        self.assertEqual(header.read_text(), actual)
 
     def test_exclusion_and_native_budget_do_not_leak_into_routes(self):
         self.select(['design'], native_limit=2, include=['humanizer'], exclude=['impeccable'])
