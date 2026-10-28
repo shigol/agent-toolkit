@@ -126,7 +126,9 @@ def save_branch(patch, branch, run_id):
         'user.email=41898282+github-actions[bot]@users.noreply.github.com', 'commit',
         '-m', f'Codex: save committed-brief result for review (run {run_id})', '-m',
         "Skills: none (transport only; source claims remain in the worker answer and trace)")
-    pushed = git('push', 'origin', 'HEAD:' + reference, check=False)
+    # A past shallow source revision may no longer be an advertised remote tip.
+    # Negotiate its known base before packing, avoiding lazy fetch of unrelated promisor blobs.
+    pushed = git('-c', 'push.negotiate=true', 'push', 'origin', 'HEAD:' + reference, check=False)
     if pushed.returncode and not existing():
         pushed.check_returncode()
     return branch

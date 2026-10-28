@@ -140,3 +140,45 @@ class TaskTransportTests(unittest.TestCase):
         self.assertEqual(Path('docs/recovered.md').read_text(), 'Bounded allowed source change\n')
         self.assertEqual(self.git('diff', '--cached', '--name-only').strip(), b'docs/recovered.md')
         self.assertIn(b'Large unrelated tracked data fixture', self.git('show', ':job-market/db/fixture.json'))
+
+    def test_past_shallow_partial_clone_push_keeps_unrelated_promisor_blobs_missing(self):
+        # Reproduce Actions recovery: the retained source SHA is older than main,
+        # and a blob-filtered sparse checkout has not downloaded unrelated data.
+        Path('docs').mkdir(); Path('docs/base.md').write_text('Source baseline\n')
+        Path('unrelated').mkdir(); Path('unrelated/large.bin').write_bytes(bytes(range(256)) * 4096)
+        self.git('add', '.'); self.git('commit', '-qm', 'Source baseline')
+        base = self.git('rev-parse', 'HEAD').strip().decode()
+        blob = self.git('rev-parse', 'HEAD:unrelated/large.bin').strip().decode()
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder); origin = directory / 'origin.git'
+            self.git('clone', '--bare', '--quiet', str(self.root), str(origin))
+            self.git('-C', str(origin), 'config', 'uploadpack.allowFilter', 'true')
+            self.git('-C', str(origin), 'config', 'uploadpack.allowAnySHA1InWant', 'true')
+            Path('docs/later.md').write_text('Main advanced after source execution\n')
+            self.git('add', '.'); self.git('commit', '-qm', 'Later main')
+            self.git('push', origin.as_uri(), 'HEAD')
+            try:
+                for control in (True, False):
+                    client = directory / ('control' if control else 'receiver'); client.mkdir()
+                    os.chdir(client)
+                    self.git('init', '-q'); self.git('remote', 'add', 'origin', origin.as_uri())
+                    self.git('config', 'user.name', 'Fixture'); self.git('config', 'user.email', 'fixture@example.invalid')
+                    self.git('config', 'remote.origin.promisor', 'true')
+                    self.git('config', 'remote.origin.partialclonefilter', 'blob:none')
+                    self.git('fetch', '--depth=1', '--filter=blob:none', 'origin', base)
+                    self.git('sparse-checkout', 'set', 'docs')
+                    self.git('checkout', '--detach', '-q', 'FETCH_HEAD')
+                    self.assertIn('?' + blob, self.git('rev-list', '--objects', '--all', '--missing=print').decode())
+                    patch = self.patch_for('docs/recovered.md', 'Retained worker output\n')
+                    run = '123' if control else '124'
+                    if control:
+                        PATCH.apply(patch); self.git('commit', '-qm', 'Default push control')
+                        self.git('-c', 'push.negotiate=false', 'push', 'origin', 'HEAD:refs/heads/codex/task-' + run)
+                    else:
+                        self.assertEqual(PATCH.save_branch(patch, 'codex/task-' + run, run), 'codex/task-' + run)
+                    missing = self.git('rev-list', '--objects', '--all', '--missing=print').decode()
+                    self.assertEqual('?' + blob in missing, not control)
+                    self.assertEqual(self.git('-C', str(origin), 'show', 'refs/heads/codex/task-' + run + ':docs/recovered.md'),
+                                     b'Retained worker output\n')
+            finally:
+                os.chdir(self.root)
