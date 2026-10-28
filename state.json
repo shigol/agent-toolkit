@@ -163,7 +163,7 @@
         "path": "docs/continuity-fixtures/partial-plan.json",
         "sha256": "fdc2820fee89c15512049f01df0f28f6dd54be726c62d9e17efa348604814bb0"
       },
-      "status": "review",
+      "status": "paused",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
@@ -191,8 +191,10 @@
           "recorded_at": "2026-10-28T13:11:11.791Z"
         }
       ],
-      "commands": [],
-      "message": "Saved work needs independent review. A successful worker is not accepted project completion.",
+      "commands": [
+        "6470548965"
+      ],
+      "message": "Paused by a repository writer; no new work will start.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -220,8 +222,8 @@
         }
       ],
       "comment_id": 6469840144,
-      "last_notice_at": "2026-10-28T13:11:11.791Z",
-      "reported_status": "review",
+      "last_notice_at": "2026-10-28T13:40:00.793Z",
+      "reported_status": "paused",
       "run_id": 40694068831,
       "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40694068831",
       "run_revision": "e8cd74b8a98722cdab6aef1e61e04d9640651340",
