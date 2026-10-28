@@ -3,7 +3,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const {test} = require('node:test');
-const {loadPlan, parse, createRecord, advance, receipt, Store, controller} = require('./codex_continuity.cjs');
+const {loadPlan, parse, createRecord, advance, receipt, Store, controller: actualController} = require('./codex_continuity.cjs');
+// Most transition tests isolate the controller; dedicated tests below exercise monitor admission.
+const controller = options => actualController({monitor: false, ...options});
 const now = Date.parse('2026-10-28T12:00:00Z');
 
 function fixture() {
@@ -16,6 +18,9 @@ function fixture() {
     '.github/scripts/codex_request.cjs']) {
     fs.mkdirSync(path.dirname(path.join(root, name)), {recursive: true});
     fs.writeFileSync(path.join(root, name), 'Trusted fixture contract.\n');
+  }
+  for (const name of ['.github/workflows/codex-monitor.yml', '.github/scripts/codex_monitor.cjs']) {
+    fs.writeFileSync(path.join(root, name), 'Trusted monitor fixture.\n');
   }
   const source = {schema: 1, title: 'Fixture only', limits: {max_runs: 4, max_minutes: 90, max_input_tokens: 1000},
     steps: [{id: 'first', brief: 'docs/a.md', attempts: 2, review: 'none'},
@@ -157,6 +162,105 @@ test('changing the imported request helper pauses the frozen execution contract'
     fs.appendFileSync(path.join(f.root, '.github/scripts/codex_request.cjs'), 'modified dependency');
     await controller({github: api.github, context: context(), root: f.root, store, now: now + 1000});
     assert.equal(store.value.records[0].status, 'paused');
+  } finally { f.close(); }
+});
+
+test('a model waits for an observably executing monitor, not its accepted dispatch or queued run', async () => {
+  const f = fixture(), api = service(), store = new MemoryStore(), monitors = [], requests = [];
+  const list = api.github.rest.actions.listWorkflowRuns;
+  const jobs = api.github.rest.actions.listJobsForWorkflowRun;
+  const dispatch = api.github.rest.actions.createWorkflowDispatch;
+  let phase = 'pending';
+  api.github.rest.actions.listWorkflowRuns = async input => input.workflow_id === 'codex-monitor.yml'
+    ? {data: {workflow_runs: monitors}} : list(input);
+  api.github.rest.actions.listJobsForWorkflowRun = async input => input.run_id === 901
+    ? {data: {jobs: [{steps: [{name: 'Reconcile until idle or bounded handoff', status: phase}]}]}} : jobs(input);
+  api.github.rest.actions.createWorkflowDispatch = async input => input.workflow_id === 'codex-monitor.yml'
+    ? requests.push(input) : dispatch(input);
+  try {
+    await controller({github: api.github, context: context(), root: f.root, store, now, monitor: true});
+    assert.equal(requests.length, 1); assert.equal(api.calls.length, 0);
+    assert.equal(store.value.records[0].status, 'pending');
+    await controller({github: api.github, context: context(), root: f.root, store, now: now + 1000, monitor: true});
+    assert.equal(requests.length, 1, 'a leased ambiguous monitor start is not blindly repeated');
+    monitors.push({id: 901, status: 'queued', event: 'workflow_dispatch', path: '.github/workflows/codex-monitor.yml',
+      head_branch: 'main', head_repository: {full_name: 'owner/project'}, head_sha: 'a'.repeat(40), html_url: 'https://example.invalid/monitor/901'});
+    await controller({github: api.github, context: context(), root: f.root, store, now: now + 2000, monitor: true});
+    assert.equal(api.calls.length, 0);
+    monitors[0].status = 'in_progress';
+    await controller({github: api.github, context: context(), root: f.root, store, now: now + 3000, monitor: true});
+    assert.equal(api.calls.length, 0, 'monitor checkout is not monitor execution');
+    phase = 'in_progress';
+    await controller({github: api.github, context: context(), root: f.root, store, now: now + 4000, monitor: true});
+    assert.equal(api.calls.length, 0, 'an old active monitor has not yet acknowledged this registration');
+    const tick = {...context(), eventName: 'workflow_dispatch', runId: 901,
+      payload: {repository: {default_branch: 'main'}}};
+    await controller({github: api.github, context: tick, root: f.root, store, now: now + 5000, monitor: true});
+    assert.equal(api.calls.length, 1); assert.equal(store.value.monitor_run_id, 901);
+  } finally { f.close(); }
+});
+
+function activeMonitor(api) {
+  const item = {id: 901, status: 'in_progress', event: 'workflow_dispatch', path: '.github/workflows/codex-monitor.yml',
+    head_branch: 'main', head_repository: {full_name: 'owner/project'}, head_sha: 'a'.repeat(40), html_url: 'https://example.invalid/monitor/901'};
+  const requests = [], list = api.github.rest.actions.listWorkflowRuns,
+    jobs = api.github.rest.actions.listJobsForWorkflowRun, dispatch = api.github.rest.actions.createWorkflowDispatch;
+  api.github.rest.actions.listWorkflowRuns = async input => input.workflow_id === 'codex-monitor.yml'
+    ? {data: {workflow_runs: [item]}} : list(input);
+  api.github.rest.actions.listJobsForWorkflowRun = async input => input.run_id === item.id
+    ? {data: {jobs: [{steps: [{name: 'Reconcile until idle or bounded handoff', status: 'in_progress'}]}]}} : jobs(input);
+  api.github.rest.actions.createWorkflowDispatch = async input => input.workflow_id === 'codex-monitor.yml'
+    ? requests.push(input) : dispatch(input);
+  const tick = () => ({...context(), eventName: 'workflow_dispatch', runId: item.id, payload: {repository: {default_branch: 'main'}}});
+  return {item, requests, tick};
+}
+
+test('a distinct registration cannot borrow the acknowledgment of an exiting old monitor', async () => {
+  const f = fixture(), api = service(), store = new MemoryStore(), mon = activeMonitor(api);
+  try {
+    await controller({github: api.github, context: context(), root: f.root, store, now});
+    store.value.records[0].status = 'complete'; api.runs[0].status = 'completed';
+    store.value.records[0].monitor_ack = {run_id: 901, key: '0:1:0'};
+    fs.writeFileSync(path.join(f.root, 'docs/b.md'), 'Another bounded task.');
+    const next = context('/codex-run docs/b.md'); next.payload.comment.id = 1000;
+    await controller({github: api.github, context: next, root: f.root, store, now: now + 1000, monitor: true});
+    await controller({github: api.github, context: next, root: f.root, store, now: now + 2000, monitor: true});
+    assert.equal(api.calls.length, 1); assert.equal(mon.requests.length, 1);
+    assert.equal(store.value.records[1].status, 'pending');
+    mon.item.id = 902;
+    await controller({github: api.github, context: mon.tick(), root: f.root, store, now: now + 3000, monitor: true});
+    assert.equal(api.calls.length, 2); assert.equal(store.value.records[1].monitor_ack.run_id, 902);
+  } finally { f.close(); }
+});
+
+test('resume invalidates an old acknowledgment until the monitor observes the new epoch', async () => {
+  const f = fixture(), api = service(), store = new MemoryStore(), mon = activeMonitor(api);
+  try {
+    await controller({github: api.github, context: context(), root: f.root, store, now});
+    const item = store.value.records[0]; item.status = 'paused';
+    item.history.push({request_id: item.request_id, run_id: api.runs[0].id});
+    item.monitor_ack = {run_id: 901, key: '0:1:0'}; api.runs[0].status = 'completed';
+    await controller({github: api.github, context: context('/codex-resume 99'), root: f.root, store, now: now + 1000, monitor: true});
+    assert.equal(api.calls.length, 1); assert.equal(mon.requests.length, 1);
+    assert.equal(store.value.records[0].monitor_epoch, 1);
+    await controller({github: api.github, context: mon.tick(), root: f.root, store, now: now + 2000, monitor: true});
+    assert.equal(api.calls.length, 2); assert.equal(store.value.records[0].monitor_ack.key, '0:1:1');
+  } finally { f.close(); }
+});
+
+test('a paused-only unresolved attempt restarts an explicit monitor rather than relying on cron', async () => {
+  const f = fixture(), api = service(), store = new MemoryStore(), requests = [];
+  try {
+    await controller({github: api.github, context: context(), root: f.root, store, now});
+    store.value.records[0].status = 'paused';
+    const list = api.github.rest.actions.listWorkflowRuns, dispatch = api.github.rest.actions.createWorkflowDispatch;
+    api.github.rest.actions.listWorkflowRuns = async input => input.workflow_id === 'codex-monitor.yml'
+      ? {data: {workflow_runs: []}} : list(input);
+    api.github.rest.actions.createWorkflowDispatch = async input => input.workflow_id === 'codex-monitor.yml'
+      ? requests.push(input) : dispatch(input);
+    const tick = {...context(), eventName: 'workflow_dispatch', payload: {repository: {default_branch: 'main'}}};
+    await controller({github: api.github, context: tick, root: f.root, store, now: now + 1000, monitor: true});
+    assert.equal(requests.length, 1); assert.equal(api.calls.filter(x => x.workflow_id === 'codex-task.yml').length, 1);
   } finally { f.close(); }
 });
 

@@ -11,9 +11,10 @@ const TERMINAL = new Set(['complete', 'paused', 'blocked']);
 const MAX_STATE_BYTES = 262144;
 const hash = data => crypto.createHash('sha256').update(data).digest('hex');
 const iso = ms => new Date(ms).toISOString();
+const monitorKey = record => `${record.step}:${record.attempt}:${record.monitor_epoch || 0}`;
 
 function contractHashes(root, files) {
-  if (!Array.isArray(files) || files.length > 10) throw Error('Invalid worker contract');
+  if (!Array.isArray(files) || files.length > 16) throw Error('Invalid worker contract');
   const base = fs.realpathSync(root);
   return files.map(name => {
     if (typeof name !== 'string' || name.length > 240 || path.isAbsolute(name)
@@ -100,7 +101,7 @@ function parse(body) {
 function createRecord(plan, request, issue, author, revision, now) {
   return {schema: 1, id: request, issue, author, revision, plan, status: 'pending', step: 0, attempt: 0,
     total_runs: 0, input_tokens: 0, started_at: iso(now), expires_at: iso(now + plan.limits.max_minutes * 60000),
-    observed_at: iso(now), start_due_at: iso(now + 5 * 60000), response_due_at: iso(now + 15 * 60000),
+    observed_at: iso(now), monitor_epoch: 0, start_due_at: iso(now + 5 * 60000), response_due_at: iso(now + 15 * 60000),
     history: [], commands: [], message: 'Plan registered; no worker is running yet.'};
 }
 
@@ -325,7 +326,7 @@ async function report(github, repo, record) {
   record.reported_status = record.status;
 }
 
-async function controllerOnce({github, context, root = process.cwd(), now = Date.now(), worker = 'codex-task.yml', relatedWorkers, watchdog = true, contractPaths, store}) {
+async function controllerOnce({github, context, root = process.cwd(), now = Date.now(), worker = 'codex-task.yml', relatedWorkers, watchdog = true, monitor = true, contractPaths, store}) {
   const repo = context.repo;
   store ||= new Store(github, repo);
   const state = await store.load();
@@ -337,6 +338,7 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
     '.github/workflows/codex-continuity-watchdog.yml', '.github/scripts/codex_continuity.cjs',
     '.github/scripts/codex_task_run.py', '.github/scripts/codex_task_patch.py', '.github/scripts/codex_result.cjs',
     '.github/scripts/codex_request.cjs',
+    '.github/workflows/codex-monitor.yml', '.github/scripts/codex_monitor.cjs',
     ...relatedWorkers.map(name => `.github/workflows/${name}`)];
   let armed = false;
   async function enableWatchdog() {
@@ -407,6 +409,7 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
         } else if (command.command === 'resume') {
           if (record.status !== 'paused' || record.request_id && !record.history.some(x => x.request_id === record.request_id)) throw Error('Cannot resume an unconfirmed or still-active run');
           record.status = 'retry'; record.message = 'Resume requested; original budgets still apply.';
+          record.monitor_epoch = (record.monitor_epoch || 0) + 1;
         } else {
           if (record.status !== 'review') throw Error('Only a saved review checkpoint can be accepted');
           if (record.branch) {
@@ -430,7 +433,49 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
       }
     }
   }
-  if (state.records.some(record => ACTIVE.has(record.status))) await enableWatchdog();
+  const monitoringNeeded = watchdog && require('./codex_monitor.cjs').needed(state);
+  if (monitoringNeeded) await enableWatchdog();
+  let monitorReady = true;
+  if (monitoringNeeded && monitor) {
+    // Cron alone may be delayed indefinitely. Do not launch a model until the
+    // independently dispatched, bounded no-model monitor is observably executing.
+    monitorReady = false;
+    const monitoring = (await github.rest.actions.listWorkflowRuns({...repo,
+      workflow_id: 'codex-monitor.yml', per_page: 20})).data.workflow_runs;
+    for (const run of monitoring.filter(item => item.status === 'in_progress'
+        && item.event === 'workflow_dispatch' && item.head_branch === event.repository.default_branch
+        && item.path === '.github/workflows/codex-monitor.yml'
+        && item.head_repository?.full_name === `${repo.owner}/${repo.repo}`
+        && /^[a-f0-9]{40}$/.test(item.head_sha || '')).slice(0, 2)) {
+      const jobs = (await github.rest.actions.listJobsForWorkflowRun({...repo, run_id: run.id, per_page: 100})).data.jobs;
+      if (jobs.some(job => job.steps?.some(step => step.name === 'Reconcile until idle or bounded handoff' && step.status === 'in_progress'))) {
+        monitorReady = true;
+        state.monitor_run_id = run.id;
+        state.monitor_run_url = run.html_url;
+        if (context.runId === run.id) {
+          for (const record of state.records.filter(item => ACTIVE.has(item.status)))
+            record.monitor_ack = {run_id: run.id, key: monitorKey(record), observed_at: iso(now)};
+        }
+        break;
+      }
+    }
+    const unacknowledged = state.records.filter(record => ['pending', 'retry'].includes(record.status)
+      && (!record.monitor_ack || record.monitor_ack.run_id !== state.monitor_run_id || record.monitor_ack.key !== monitorKey(record)));
+    const needsSuccessor = monitorReady && unacknowledged.some(record => !record.monitor_requested_at
+      || now - Date.parse(record.monitor_requested_at) >= 5 * 60000);
+    if ((!monitorReady && (!state.monitor_requested_at || now - Date.parse(state.monitor_requested_at) >= 5 * 60000)) || needsSuccessor) {
+      state.monitor_requested_at = iso(now);
+      for (const record of unacknowledged) record.monitor_requested_at = iso(now);
+      await store.save(state); // CAS lease before the harmless monitoring dispatch.
+      try {
+        await github.rest.actions.createWorkflowDispatch({...repo, workflow_id: 'codex-monitor.yml',
+          ref: event.repository.default_branch, inputs: {}});
+        state.monitor_message = 'Monitor requested; waiting to verify its actual execution step.';
+      } catch {
+        state.monitor_message = 'Monitor dispatch is uncertain. Model launch stays held; cron remains a fallback.';
+      }
+    }
+  }
   let runs;
   async function observedRuns() {
     if (!runs) {
@@ -461,6 +506,12 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
       || record.total_runs >= record.plan.limits.max_runs || record.input_tokens >= record.plan.limits.max_input_tokens
       || record.attempt >= record.plan.steps[record.step].attempts;
     if ((record.status === 'pending' || record.status === 'retry') && !changed && !stoppedByBudget) {
+      if (!monitorReady || monitor && watchdog && (!record.monitor_ack
+          || record.monitor_ack.run_id !== state.monitor_run_id || record.monitor_ack.key !== monitorKey(record))) {
+        record.observed_at = iso(now);
+        record.message = 'Waiting for a verified cloud monitor execution; no worker was dispatched. ' + (state.monitor_message || '');
+        await report(github, repo, record); await store.save(state); continue;
+      }
       if (await busy(record)) {
         record.observed_at = iso(now); record.message = 'Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.';
         await report(github, repo, record); await store.save(state); continue;
@@ -520,7 +571,10 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
     let transition = advance(record, {run, receipt: result, changed, execution_started: executionStarted}, now);
     record = state.records[index] = transition.record;
     if (['pending', 'retry'].includes(record.status) && !transition.effects.length) {
-      if (await busy(record)) record.message = 'Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.';
+      if (!monitorReady || monitor && watchdog && (!record.monitor_ack
+          || record.monitor_ack.run_id !== state.monitor_run_id || record.monitor_ack.key !== monitorKey(record)))
+        record.message = 'Waiting for this step to be acknowledged by a verified cloud monitor; no new dispatch was made.';
+      else if (await busy(record)) record.message = 'Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.';
       else {
         transition = advance(record, {}, now);
         record = state.records[index] = transition.record;
