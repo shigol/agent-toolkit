@@ -215,5 +215,5 @@
       "delivery_run": 40776034318
     }
   ],
-  "watchdog_enabled": true
+  "watchdog_enabled": false
 }
