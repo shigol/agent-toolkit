@@ -194,7 +194,7 @@
       "comment_id": 6482122314,
       "last_notice_at": "2026-10-28T22:19:24.133Z",
       "deadline_notices": [],
-      "reported_status": "dispatching",
+      "reported_status": "initializing",
       "monitor_ack": {
         "run_id": 40779074582,
         "key": "0:0:0",
