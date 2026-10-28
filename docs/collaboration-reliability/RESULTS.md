@@ -32,7 +32,7 @@ The first release's cron-only monitoring failed the timely-notice test: no sched
 
 ## Boundaries
 
-Unit fixtures separately cover ambiguous dispatch/callbacks, timeout budgets, resume epochs, path validation and monitor handoff. Those branches are not all separately induced in live production. Normal task execution is bounded to one call by default; observed token usage is not a hard ceiling within a provider call. Provider outages and runner queues can delay checks.
+Unit fixtures separately cover ambiguous dispatch/callbacks, timeout budgets, resume epochs, path validation and monitor handoff. Those branches are not all separately induced in live production. Normal task execution is bounded to one worker invocation by default; observed token usage is not a hard ceiling within a provider call. Provider outages and runner queues can delay checks.
 
 Cloud notices go to the registered GitHub issue/PR. They do not automatically appear in this chat or wake arbitrary Claude Projects threads. The configured routine starts a fresh Claude Code session. No thirty-minute chat automation is claimed. Shared-skills selection quality and original Claude Projects raw-read evidence remain separate EVG-124 acceptance work.
 

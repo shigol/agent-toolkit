@@ -15,7 +15,7 @@ This protocol requires the reviewed collaboration integration from toolkit `97df
    ```
 
    Do not wrap the command itself in a code fence when sending it. Do not add an inline prompt, flags or another command. The exact standard Claude Code attribution footer is supported; other trailing prose is rejected. A prose comment, mention or SHARED.md edit alone does not start Codex.
-4. Keep the returned **comment ID** as the immutable request ID. Check the request-handler outcome and the record on branch `codex/continuity-state`, file `state.json`. An ordinary task automatically becomes a monitored one-call plan; it requires no separately authored plan JSON.
+4. Keep the returned **comment ID** as the immutable request ID. Check the request-handler outcome and the record on branch `codex/continuity-state`, file `state.json`. An ordinary task automatically becomes a monitored one-worker plan; it requires no separately authored plan JSON.
 5. Check the actual **child run ID**, its execution step and progress. Also verify the registry's `monitor_run_id`/link and this record's `monitor_ack`: a model is held until the running monitor has acknowledged this registration, step, attempt and resume epoch. The handler's own run is a different run. The requesting Claude session must schedule and verify its own supported follow-up if it will leave the turn; save that follow-up's ID and next-fire time. A written deadline is not a scheduled check.
 
 Re-delivery of the same immutable request ID is reconciled without dispatching another worker. Posting a new comment creates a new request; do not use that as a retry for an uncertain or active task.
@@ -56,7 +56,7 @@ A green worker, a `Skills:` line or a successful API response never proves the w
 
 ## Follow up without Eugene
 
-Ask for acknowledgement within five minutes and an answer or blocker/ETA within fifteen minutes. These are coordination targets, not provider timing guarantees. Normal requests have a bounded one-call plan, a 75-minute elapsed cap, an observed input budget of 1M and final review required. Usage is accounted when the completed worker receipt is reconciled; this is not a per-turn guard or a hard ceiling inside one provider call.
+Ask for acknowledgement within five minutes and an answer or blocker/ETA within fifteen minutes. These are coordination targets, not provider timing guarantees. Normal requests have a bounded one-worker plan, a 75-minute elapsed cap, an observed input budget of 1M and final review required. Usage is accounted when the completed worker receipt is reconciled; this is not a per-turn guard or a hard ceiling inside one provider call.
 
 The explicitly dispatched, bounded cloud monitor reconciles immediately and then about every five minutes, records overdue start/response notices, and never runs another model just to poll. It exits when idle; at its bound it attempts one successor without resetting task budgets. Cron is only a fallback. It also emits ordinary progress notices about every thirty minutes. GitHub queues and cron can be delayed. Verify the monitor is observably running, its acknowledgment matches this task and the registry has a next action; don't infer monitoring from a workflow file merely existing.
 
