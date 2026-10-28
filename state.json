@@ -236,8 +236,8 @@
         }
       ],
       "comment_id": 6469790418,
-      "last_notice_at": "2026-10-28T13:07:47.029Z",
-      "reported_status": "queued",
+      "last_notice_at": "2026-10-28T13:10:30.704Z",
+      "reported_status": "blocked",
       "run_id": 40693956457,
       "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40693956457",
       "run_revision": "e8cd74b8a98722cdab6aef1e61e04d9640651340",
