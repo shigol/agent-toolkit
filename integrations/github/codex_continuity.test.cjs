@@ -485,8 +485,11 @@ test('queued plans still expire while another worker keeps the repository gate b
 });
 
 test('immutable intake events cannot share the coalescing reconcile concurrency group', () => {
-  for (const file of ['codex-continuity.yml', '../../.github/workflows/continuity-controller.yml']) {
-    const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
+  const files = ['codex-continuity.yml', '../workflows/codex-continuity.yml', '../../.github/workflows/continuity-controller.yml']
+    .map(file => path.join(__dirname, file)).filter(file => fs.existsSync(file));
+  assert.ok(files.length, 'the installed or source workflow must be present');
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
     assert.match(content, /group:.*issue_comment.*github\.event\.comment\.id/);
     assert.match(content, /cancel-in-progress: false/);
   }
