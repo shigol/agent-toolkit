@@ -271,17 +271,17 @@
         "path": "docs/continuity-fixtures/partial-plan.json",
         "sha256": "fdc2820fee89c15512049f01df0f28f6dd54be726c62d9e17efa348604814bb0"
       },
-      "status": "pending",
+      "status": "dispatching",
       "step": 0,
-      "attempt": 0,
-      "total_runs": 0,
+      "attempt": 1,
+      "total_runs": 1,
       "input_tokens": 0,
       "started_at": "2026-10-28T13:09:51.356Z",
       "expires_at": "2026-10-28T13:39:51.356Z",
-      "observed_at": "2026-10-28T13:10:13.983Z",
+      "observed_at": "2026-10-28T13:10:30.704Z",
       "history": [],
       "commands": [],
-      "message": "Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.",
+      "message": "Dispatch reserved; waiting for a verified Actions run.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -310,7 +310,12 @@
       ],
       "comment_id": 6469840144,
       "last_notice_at": "2026-10-28T13:10:01.011Z",
-      "reported_status": "pending"
+      "reported_status": "pending",
+      "run_id": null,
+      "run_url": "",
+      "run_revision": null,
+      "request_id": "continuity-6469828891-0-1",
+      "dispatched_at": "2026-10-28T13:10:30.704Z"
     }
   ]
 }
