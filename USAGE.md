@@ -16,6 +16,10 @@ Animation and illustration/video production are different capabilities. This too
 
 The project's `.agent-toolkit.json` controls which groups both agents discover. Keep project-specific procedures local. Backend-only work does not need design/video skills. Use `status --project PATH` to distinguish installed files from session discovery.
 
+## Work after the chat ends
+
+Skill selection does not keep an idle chat running. For authorized work that must continue, register a bounded committed plan through the supported repository integration and verify its actual cloud state; otherwise report paused. Read [CONTINUITY.md](CONTINUITY.md) for the handoff and host limits, and the [measured cloud evidence](docs/continuity-fixtures/RESULTS.md) for what has actually passed. A toolkit version update alone does not install new workflows into an existing project.
+
 ## Agent-specific behavior
 
 Codex discovers `.agents/skills`; compatible Claude Code hosts discover `.claude/skills`. The installer creates relative symlinks to one shared copy of each skill. Ordinary Claude web chats do not discover these folders automatically. Live remote_projects probes on 2026-10-27 skipped repository hooks and exposed account skills, correcting the earlier claim that SessionStart would initialize those threads. In that hosted surface, Claude owns the account-level `shared-skills` bootstrap, which points into the same library and supports direct SKILL.md reading. Discovery of that adapter was reported in both projects; substantive invocation is tracked separately in EVIDENCE.md and Career SHARED.md. Do not rely on a reload or repo hook to enable hosted Skill-tool discovery. Keep one shared policy; the adapter does not duplicate all skills or grant repository access.
