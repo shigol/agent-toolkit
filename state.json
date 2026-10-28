@@ -271,17 +271,36 @@
         "path": "docs/continuity-fixtures/partial-plan.json",
         "sha256": "fdc2820fee89c15512049f01df0f28f6dd54be726c62d9e17efa348604814bb0"
       },
-      "status": "dispatching",
+      "status": "review",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
       "input_tokens": 0,
       "started_at": "2026-10-28T13:09:51.356Z",
       "expires_at": "2026-10-28T13:39:51.356Z",
-      "observed_at": "2026-10-28T13:10:30.704Z",
-      "history": [],
+      "observed_at": "2026-10-28T13:11:11.791Z",
+      "history": [
+        {
+          "run_id": 40694068831,
+          "revision": "e8cd74b8a98722cdab6aef1e61e04d9640651340",
+          "request_id": "continuity-6469828891-0-1",
+          "result": {
+            "run_id": 40694068831,
+            "request_id": "continuity-6469828891-0-1",
+            "worker": "failure",
+            "save": "success",
+            "has_patch": true,
+            "held_count": 0,
+            "input_tokens": 0,
+            "usage_known": false,
+            "branch": "codex/task-40694068831",
+            "checkpoint_status": "timeout"
+          },
+          "recorded_at": "2026-10-28T13:11:11.791Z"
+        }
+      ],
       "commands": [],
-      "message": "Dispatch accepted; waiting to verify the actual run.",
+      "message": "Saved work needs independent review. A successful worker is not accepted project completion.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -311,11 +330,13 @@
       "comment_id": 6469840144,
       "last_notice_at": "2026-10-28T13:10:01.011Z",
       "reported_status": "dispatching",
-      "run_id": null,
-      "run_url": "",
-      "run_revision": null,
+      "run_id": 40694068831,
+      "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40694068831",
+      "run_revision": "e8cd74b8a98722cdab6aef1e61e04d9640651340",
       "request_id": "continuity-6469828891-0-1",
-      "dispatched_at": "2026-10-28T13:10:30.704Z"
+      "dispatched_at": "2026-10-28T13:10:30.704Z",
+      "usage_unknown": true,
+      "branch": "codex/task-40694068831"
     }
   ]
 }
