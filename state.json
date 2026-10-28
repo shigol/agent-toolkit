@@ -134,20 +134,39 @@
           }
         ]
       },
-      "status": "initializing",
+      "status": "review",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
       "input_tokens": 0,
       "started_at": "2026-10-28T22:19:24.133Z",
       "expires_at": "2026-10-28T23:34:24.133Z",
-      "observed_at": "2026-10-28T22:29:54.717Z",
+      "observed_at": "2026-10-28T22:31:06.802Z",
       "monitor_epoch": 0,
       "start_due_at": "2026-10-28T22:24:24.133Z",
       "response_due_at": "2026-10-28T22:34:24.133Z",
-      "history": [],
+      "history": [
+        {
+          "run_id": 40779101382,
+          "revision": "97df0c26a4f74264214f74f644b7ef6457e98728",
+          "request_id": "continuity-6482117204-0-1",
+          "result": {
+            "run_id": 40779101382,
+            "request_id": "continuity-6482117204-0-1",
+            "worker": "success",
+            "save": "success",
+            "has_patch": false,
+            "held_count": 0,
+            "input_tokens": 0,
+            "usage_known": true,
+            "branch": "",
+            "checkpoint_status": "execution_complete"
+          },
+          "recorded_at": "2026-10-28T22:31:06.802Z"
+        }
+      ],
       "commands": [],
-      "message": "Workflow is active, but the actual execution step has not started.",
+      "message": "Saved work needs independent review. A successful worker is not accepted project completion.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -206,7 +225,10 @@
       "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40779101382",
       "run_revision": "97df0c26a4f74264214f74f644b7ef6457e98728",
       "request_id": "continuity-6482117204-0-1",
-      "dispatched_at": "2026-10-28T22:19:35.780Z"
+      "dispatched_at": "2026-10-28T22:19:35.780Z",
+      "worker_started_at": "2026-10-28T22:31:06.802Z",
+      "usage_unknown": false,
+      "branch": ""
     },
     {
       "schema": 1,
