@@ -16,7 +16,7 @@ Shared, versioned design, video, writing and product skills for Eugene's project
 
 Exact upstream commits, all vendored file hashes, skill names and paths are in `toolkit.lock.json`. Full supporting files are included. Upstream licenses and notices are preserved beside each collection under `vendor/`; they govern those files. The POSIX Impeccable launcher has its executable bit set for direct invocation; file contents are unchanged. Toolkit-owned scripts and docs are maintained in this public repository; no license grant is implied for those files.
 
-Read [USAGE.md](USAGE.md) for selection guidance. Project-specific UX and brand rules belong in each app's own PRODUCT.md, DESIGN.md and agent instructions.
+Read [USAGE.md](USAGE.md) for selection guidance. [CONTINUITY.md](CONTINUITY.md) distinguishes an active cloud job from an idle chat and defines the required handoff for unfinished work. Project-specific UX and brand rules belong in each app's own PRODUCT.md, DESIGN.md and agent instructions.
 Every registered skill has a [selection guide](catalog/README.md). New skills require the same description and examples; catalogue admission checks run in CI. Track ongoing implementation and host verification in [WORKING-PLAN.md](WORKING-PLAN.md).
 
 ## New projects and global Codex fallback
@@ -126,7 +126,7 @@ To update a consuming project deliberately, fetch the toolkit submodule, check o
 
 A consuming project can opt into daily Dependabot `gitsubmodule` update PRs for `.agent-toolkit`. Its own validation workflow checks the inventory, source hashes, repeatable installation, runtime, and new-skill propagation to both agents. A separate merge workflow can merge a checked Dependabot PR that changes only the gitlink. The project continues to record an exact version.
 
-Compatible additions and edits to Markdown skill instructions and references can merge automatically with their manifest updates. Installer/runtime changes, executable files, deleted files, moved or removed skills, conflicts with project-specific skills, and failed checks need review. Project branch protections and requested changes remain in force. Publication here does not silently alter an active checkout or chat: pull the consuming project, rerun its setup, and reload the agent when needed.
+Changes to vendored skill instructions/references and their manifest updates require the other agent's review, including additive Markdown. Only small compatible nonvendor Markdown updates remain eligible for unattended merging. Installer/runtime changes, executable files, deleted files, moved or removed skills, conflicts with project-specific skills, and failed checks need review. Project branch protections and requested changes remain in force. Publication here does not silently alter an active checkout or chat: pull the consuming project, rerun its setup, and reload the agent when needed.
 
 To add a skill, preserve its source and license under `vendor/`, register its unique name, directory and package in `toolkit.lock.json`, and include every vendored file's SHA-256 hash. The registered directory must contain `SKILL.md`. Installation creates links for every registered skill in both agents' folders, including skills added after a project first connected. An existing project-specific skill with the same name stops installation rather than being overwritten. Update the collection table and selection guidance when adding a collection.
 

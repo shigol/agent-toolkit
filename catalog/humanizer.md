@@ -4,13 +4,13 @@
 
 **Invocation:** automatic
 
-**Route:** Write or edit text for a person
+**Route:** Write/edit prose or report work (code too)
 
 **Synonyms:** cover letter; email; outreach; recruiter note; CV; rewrite; natural prose; AI writing; PR body
 
-**Use when:** Existing prose needs a natural-language editing pass for filler, inflated claims, repetitive structures or chatbot phrasing.
+**Use when:** Drafting or editing prose, including a reply reporting code or test work. Read the ### patterns for short replies; read the whole source for documents and outside messages.
 
-**Do not use when:** Inventing evidence, disguising authorship, changing quotations, altering code, or treating every short factual reply as an editing project.
+**Do not use when:** Inventing evidence, disguising authorship, changing quotations, altering code, or turning a trivial arithmetic answer into an editing project.
 
 **Overlaps and default:** Use after substantive drafting or research. create-prd owns requirements structure; Humanizer can polish prose without changing its decisions. Project tone and factual constraints win.
 

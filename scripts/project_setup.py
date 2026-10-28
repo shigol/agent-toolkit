@@ -43,11 +43,13 @@ def native_block():
             'If native coverage is missing or incomplete, follow .agent-toolkit/SELECTION.md, '
             'then the catalogue index; search last. Missing files: bash tools/setup-agent-toolkit.sh --skills-only.\n'
             'Use one primary UI workflow: impeccable by default; design-taste-frontend only for an explicit alternative direction. '
-            'Use humanizer for prose (whole source for documents/outside messages; ### patterns for short replies/PR bodies) '
+            'Use humanizer for prose, including replies reporting code work (whole source for documents/outside messages; ### patterns for short replies/PR bodies) '
             'and verification-before-completion for tests and completion claims. '
             'This Codex selection rule takes precedence over Claude-specific routing in CLAUDE.md; its other project rules still apply. '
             'Project rules and factual/template constraints win. Each commit/PR names only skills actually read: '
-            'Skills: <names>, or Skills: none (<why>).\n' + NATIVE_END + '\n')
+            'Skills: <names>, or Skills: none (<why>).\n'
+            'Unfinished work at turn end needs a verified cloud run and saved checkpoint, or an explicit paused status. '
+            'No idle-chat background promises; see .agent-toolkit/CONTINUITY.md.\n' + NATIVE_END + '\n')
 
 
 def regular(project, path):
@@ -204,9 +206,11 @@ def bootstrap_global(root, codex_home):
                  f'the fallback library is {root}. Open its SELECTION.md, catalogue index and chosen guide Source; '
                  'search last. This works even when the current repository has no .agent-toolkit. '
                  'Do not fetch a mutable latest revision or duplicate skill sources. Project rules win.\n'
-                 'Use humanizer for reader-facing prose, verification-before-completion before completion claims, '
+                 'Use humanizer for prose including replies reporting code work, verification-before-completion before completion claims, '
                  'and only one primary design workflow (impeccable by default; Taste requires an explicit alternative). '
                  'Name only skills actually read in each commit/PR. Installation is not proof of runtime readiness.\n'
+                 'Unfinished work at turn end needs a verified cloud run and saved checkpoint, or an explicit paused status. '
+                 f'No idle-chat background promises; see {root}/CONTINUITY.md.\n'
                  + GLOBAL_END + '\n')
     original = target.read_text() if target.exists() else ''
     target.write_text(marked(original, generated, GLOBAL_START, GLOBAL_END))
