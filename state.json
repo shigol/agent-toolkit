@@ -27,7 +27,7 @@
           }
         ]
       },
-      "status": "review",
+      "status": "complete",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
@@ -57,8 +57,10 @@
           "recorded_at": "2026-10-28T21:56:21.288Z"
         }
       ],
-      "commands": [],
-      "message": "Saved work needs independent review. A successful worker is not accepted project completion.",
+      "commands": [
+        "6481888735"
+      ],
+      "message": "Final results accepted by a repository writer.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -99,9 +101,9 @@
       "request_id": "continuity-6481439101-0-1",
       "dispatched_at": "2026-10-28T21:44:47.417Z",
       "comment_id": 6481443796,
-      "last_notice_at": "2026-10-28T21:56:21.288Z",
+      "last_notice_at": "2026-10-28T21:56:55.946Z",
       "deadline_notices": [],
-      "reported_status": "review",
+      "reported_status": "complete",
       "worker_started_at": "2026-10-28T21:56:21.288Z",
       "usage_unknown": false,
       "branch": ""
