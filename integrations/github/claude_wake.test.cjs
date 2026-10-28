@@ -116,6 +116,57 @@ test('unexpected, redirected, oversized and malformed accepted responses stay un
   for (const response of responses) assert.equal((await fire({url: URL, token: TOKEN, text: 'x', fetcher: async () => response})).status, 'unconfirmed');
 });
 
+test('schema mismatch diagnostics identify failed checks without exposing response values or arbitrary keys', async () => {
+  const body = {type: TOKEN, claude_code_session_id: 'session_fixture',
+    claude_code_session_url: 'https://claude.ai/code/session_fixture',
+    experimental_private_body: TOKEN, [TOKEN]: 'private response',
+    data: {session_id: TOKEN, session_url: 'https://private.example', [TOKEN]: TOKEN}};
+  const result = await fire({url: URL, token: TOKEN, text: 'x', fetcher: async () => new Response(JSON.stringify(body))});
+  assert.equal(result.status, 'unconfirmed'); assert.equal(result.http_status, 200);
+  assert.deepEqual(result.response_shape.known_keys, ['type', 'claude_code_session_id', 'claude_code_session_url', 'data']);
+  assert.equal(result.response_shape.other_keys_present, true);
+  assert.equal(result.response_shape.expected_type_matches, false);
+  assert.equal(result.response_shape.expected_id_format_matches, true);
+  assert.equal(result.response_shape.expected_url_format_matches, true);
+  assert.equal(result.response_shape.expected_url_matches_id, true);
+  assert.deepEqual(result.response_shape.containers.data.known_keys, ['session_id', 'session_url']);
+  const serialized = JSON.stringify(result);
+  for (const forbidden of [TOKEN, 'experimental_private_body', 'private response', 'https://private.example', 'session_fixture']) assert.ok(!serialized.includes(forbidden));
+});
+
+test('diagnostics bound nested shapes and preserve malformed scalar/id/url holds', async () => {
+  const cases = [null, [], 'private scalar', {type: 'routine_fire', claude_code_session_id: 'private-id',
+    claude_code_session_url: 'https://private.example', response: {data: {session_id: TOKEN}}}];
+  for (const body of cases) {
+    const result = await fire({url: URL, token: TOKEN, text: 'x', fetcher: async () => new Response(JSON.stringify(body))});
+    assert.equal(result.status, 'unconfirmed'); assert.ok(result.response_shape);
+    const serialized = JSON.stringify(result.response_shape);
+    for (const value of ['private scalar', 'private-id', 'https://private.example', TOKEN]) assert.ok(!serialized.includes(value));
+    assert.ok(serialized.length <= 2048);
+  }
+});
+
+test('legacy-prefix and nested diagnostics remain booleans, not an acceptance alias', async () => {
+  const body = {type: 'routine_fire', claude_code_session_id: 'cse_private',
+    claude_code_session_url: 'https://claude.ai/code/cse_private', data: {session_id: 'cse_private', session_url: 'https://claude.ai/code/cse_private'}};
+  const result = await fire({url: URL, token: TOKEN, text: 'x', fetcher: async () => new Response(JSON.stringify(body))});
+  assert.equal(result.status, 'unconfirmed');
+  assert.equal(result.response_shape.id_shapes.claude_code_session_id.cse_prefix, true);
+  assert.equal(result.response_shape.url_shapes.claude_code_session_url.cse_path, true);
+  assert.equal(result.response_shape.containers.data.id_shapes.session_id.cse_prefix, true);
+  assert.equal(result.response_shape.expected_id_format_matches, false);
+  assert.ok(!JSON.stringify(result).includes('cse_private'));
+});
+
+test('a diagnostic-bearing unconfirmed result remains durably held and never repeats the POST', async t => {
+  const f = fixture(t); f.fetch = async () => new Response(JSON.stringify({type: 'experimental', session: {id: TOKEN, url: TOKEN}}));
+  const result = await f.call(1);
+  assert.equal(result.status, 'unconfirmed'); assert.ok(f.state.records[0].response_shape);
+  assert.equal((await f.call(1)).status, 'unconfirmed');
+  assert.equal((await f.call(2)).status, 'blocked'); assert.equal(f.posts, 1);
+  assert.ok(!JSON.stringify(f.state).includes(TOKEN));
+});
+
 test('known client rejection differs from ambiguous provider/network failure, without leaking errors', async () => {
   for (const status of [400, 401, 403, 404, 413, 422, 429]) assert.equal((await fire({url: URL, token: TOKEN, text: 'x', fetcher: async () => new Response('', {status})})).status, 'rejected');
   assert.deepEqual(await fire({url: URL, token: TOKEN, text: 'x', fetcher: async () => { throw Error(TOKEN); }}), {status: 'unconfirmed'});

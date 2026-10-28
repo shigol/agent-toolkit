@@ -43,6 +43,38 @@ function configuration(url, token) {
   return true;
 }
 
+function responseShape(body) {
+  // Only fixed structural names and booleans leave this function, never values or unknown keys.
+  const known = ['type', 'id', 'url', 'status', 'object', 'session_id', 'session_url',
+    'claude_code_session_id', 'claude_code_session_url', 'routine_id', 'trigger_id', 'request_id',
+    'data', 'result', 'response', 'session'];
+  const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+  function fields(value) {
+    if (!object(value)) return {object: false, array: Array.isArray(value)};
+    const keys = known.filter(key => Object.hasOwn(value, key));
+    const id = value.claude_code_session_id, url = value.claude_code_session_url;
+    return {object: true, known_keys: keys, other_keys_present: Object.keys(value).some(key => !known.includes(key)),
+      string_fields: keys.filter(key => typeof value[key] === 'string'),
+      object_fields: keys.filter(key => object(value[key])),
+      expected_type_matches: value.type === 'routine_fire',
+      expected_id_format_matches: typeof id === 'string' && /^session_[A-Za-z0-9_-]{1,128}$/.test(id),
+      expected_url_format_matches: typeof url === 'string' && /^https:\/\/claude\.ai\/code\/session_[A-Za-z0-9_-]{1,128}$/.test(url),
+      expected_url_matches_id: typeof id === 'string' && /^session_[A-Za-z0-9_-]{1,128}$/.test(id) && url === `https://claude.ai/code/${id}`,
+      id_shapes: Object.fromEntries(['claude_code_session_id', 'session_id', 'id'].filter(key => Object.hasOwn(value, key))
+        .map(key => [key, {session_prefix: typeof value[key] === 'string' && /^session_[A-Za-z0-9_-]{1,128}$/.test(value[key]),
+          cse_prefix: typeof value[key] === 'string' && /^cse_[A-Za-z0-9_-]{1,128}$/.test(value[key])}])),
+      url_shapes: Object.fromEntries(['claude_code_session_url', 'session_url', 'url'].filter(key => Object.hasOwn(value, key))
+        .map(key => [key, {session_path: typeof value[key] === 'string' && /^https:\/\/claude\.ai\/code\/session_[A-Za-z0-9_-]{1,128}$/.test(value[key]),
+          cse_path: typeof value[key] === 'string' && /^https:\/\/claude\.ai\/code\/cse_[A-Za-z0-9_-]{1,128}$/.test(value[key])}]))};
+  }
+  const shape = fields(body);
+  if (!shape.object) return shape;
+  shape.containers = Object.fromEntries(['data', 'result', 'response', 'session']
+    .filter(key => Object.hasOwn(body, key)).map(key => [key, fields(body[key])]));
+  if (JSON.stringify(shape).length > 2048) { shape.containers = {}; shape.containers_omitted = true; }
+  return shape;
+}
+
 async function fire({url, token, text, fetcher = fetch}) {
   if (!configuration(url, token) || typeof text !== 'string' || text.length > 65536) throw Error('Invalid bounded routine request');
   const timeout = new AbortController(), timer = setTimeout(() => timeout.abort(), 15000);
@@ -59,8 +91,10 @@ async function fire({url, token, text, fetcher = fetch}) {
       chunks.push(chunk);
     }
     const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    if (body.type !== 'routine_fire' || !/^session_[A-Za-z0-9_-]{1,128}$/.test(body.claude_code_session_id)
-        || body.claude_code_session_url !== `https://claude.ai/code/${body.claude_code_session_id}`) return {status: 'unconfirmed', http_status: 200};
+    if (body === null || body.type !== 'routine_fire' || !/^session_[A-Za-z0-9_-]{1,128}$/.test(body.claude_code_session_id)
+        || body.claude_code_session_url !== `https://claude.ai/code/${body.claude_code_session_id}`) {
+      return {status: 'unconfirmed', http_status: 200, response_shape: responseShape(body)};
+    }
     return {status: 'submitted', http_status: 200, session_url: body.claude_code_session_url};
   } catch {
     return {status: 'unconfirmed'}; // Never include request headers, response bodies or transport errors.
