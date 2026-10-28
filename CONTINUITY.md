@@ -69,6 +69,8 @@ One reserved/submitted/unconfirmed wake holds the repository slot until a writer
 
 `init-project` copies the dormant bridge into future projects without replacing an existing integration. Existing projects need a reviewed workflow/helper adoption; a toolkit pin alone does not install it. One private gateway can serve connected projects with one routine-specific secret pair. Only the routine UI can create that token; no cookies, raw provider API key or credentials copied from another host are used. The bridge remains inactive until configured. This installation does not establish live provider access or a working routine by itself.
 
+The wake helper, its tests and its workflow are managed copies of the pinned templates. Existing toolkit CI compares all three before running them, including on default-branch pushes touching toolkit paths; feature-branch push jobs skip. An older pin without these templates or a changed managed file fails validation. Deliberate wake-code customization requires a reviewed toolkit change and pin advance; unrelated project CI/authentication steps remain project-owned. These checks detect drift after a push; they do not replace branch protection or prevent a writer from changing the guard itself.
+
 ## Acceptance before claiming unattended reliability
 
 Submit a harmless task, disconnect the workstation and inspect a cloud-side result. Then test a worker timeout, stale heartbeat, failed authentication, a retried task and partial-work recovery. Confirm that the next eligible step starts once, saves its checkpoint and respects its budget. A status must distinguish actual execution, completed work and an unresolved gap. No system can guarantee no failure; the goal is to prevent a silent stop and make recovery observable.
