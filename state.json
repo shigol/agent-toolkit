@@ -135,8 +135,10 @@
       "expires_at": "2026-10-28T13:21:45.343Z",
       "observed_at": "2026-10-28T13:06:48.206Z",
       "history": [],
-      "commands": [],
-      "message": "The committed plan, brief or worker contract changed. Submit a newly reviewed plan to continue.",
+      "commands": [
+        "6469764642"
+      ],
+      "message": "Paused by a repository writer; no new work will start.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
