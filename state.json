@@ -33,7 +33,7 @@
         "path": "docs/continuity-fixtures/retry-plan.json",
         "sha256": "aa6968b31109b4c5b06be97feb5bd28284e491a60e8cc6c88292d1b6efb82dd8"
       },
-      "status": "running",
+      "status": "paused",
       "step": 0,
       "attempt": 1,
       "total_runs": 1,
@@ -42,8 +42,10 @@
       "expires_at": "2026-10-28T13:21:40.034Z",
       "observed_at": "2026-10-28T12:51:54.424Z",
       "history": [],
-      "commands": [],
-      "message": "Actions run verified active; this is not a completion claim.",
+      "commands": [
+        "6469762873"
+      ],
+      "message": "Paused by a repository writer; no new work will start.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -76,8 +78,8 @@
       "request_id": "continuity-6469449679-0-1",
       "dispatched_at": "2026-10-28T12:51:40.034Z",
       "comment_id": 6469455529,
-      "last_notice_at": "2026-10-28T12:51:45.343Z",
-      "reported_status": "running"
+      "last_notice_at": "2026-10-28T12:51:54.424Z",
+      "reported_status": "paused"
     },
     {
       "schema": 1,
