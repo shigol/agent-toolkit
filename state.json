@@ -147,7 +147,7 @@
       "response_due_at": "2026-10-28T22:34:24.133Z",
       "history": [],
       "commands": [],
-      "message": "Plan registered; no worker is running yet.",
+      "message": "Waiting for a verified cloud monitor execution; no worker was dispatched. Monitor requested; waiting to verify its actual execution step.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -190,9 +190,14 @@
           "sha256": "1e7dbf556f0a2fc838980da0abb78f95d0de0cffef626e9066c8e21969b9dc0b"
         }
       ],
-      "monitor_requested_at": "2026-10-28T22:19:24.133Z"
+      "monitor_requested_at": "2026-10-28T22:19:24.133Z",
+      "comment_id": 6482122314,
+      "last_notice_at": "2026-10-28T22:19:24.133Z",
+      "deadline_notices": [],
+      "reported_status": "pending"
     }
   ],
   "watchdog_enabled": true,
-  "monitor_requested_at": "2026-10-28T22:19:24.133Z"
+  "monitor_requested_at": "2026-10-28T22:19:24.133Z",
+  "monitor_message": "Monitor requested; waiting to verify its actual execution step."
 }
