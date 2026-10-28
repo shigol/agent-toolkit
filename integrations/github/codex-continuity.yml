@@ -3,7 +3,7 @@ on:
   issue_comment:
     types: [created]
   workflow_run:
-    workflows: [Codex committed brief]
+    workflows: [Codex committed brief, Codex build]
     types: [completed]
   workflow_dispatch:
 permissions:
@@ -12,7 +12,7 @@ permissions:
   issues: write
   pull-requests: read
 concurrency:
-  group: codex-continuity-controller
+  group: ${{ github.event_name == 'issue_comment' && format('codex-continuity-intake-{0}', github.event.comment.id) || 'codex-continuity-controller' }}
   cancel-in-progress: false
 jobs:
   reconcile:

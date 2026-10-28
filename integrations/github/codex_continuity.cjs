@@ -85,7 +85,7 @@ function parse(body) {
 function createRecord(plan, request, issue, author, revision, now) {
   return {schema: 1, id: request, issue, author, revision, plan, status: 'pending', step: 0, attempt: 0,
     total_runs: 0, input_tokens: 0, started_at: iso(now), expires_at: iso(now + plan.limits.max_minutes * 60000),
-    observed_at: iso(now), history: [], message: 'Plan registered; no worker is running yet.'};
+    observed_at: iso(now), history: [], commands: [], message: 'Plan registered; no worker is running yet.'};
 }
 
 function receipt(body, request, runId) {
@@ -132,6 +132,8 @@ function advance(record, observed, now) {
       return {record: next, effects};
     }
     next.attempt += 1; next.total_runs += 1;
+    next.run_id = null; next.run_url = ''; next.run_revision = null;
+    delete next.no_jobs_observed_at;
     next.request_id = `continuity-${next.id}-${next.step}-${next.attempt}`;
     next.dispatched_at = iso(now); next.status = 'dispatching';
     next.message = 'Dispatch reserved; waiting for a verified Actions run.';
@@ -180,7 +182,7 @@ function advance(record, observed, now) {
   }
   if (run.conclusion !== 'success' || result.worker !== 'success') {
     next.status = 'retry'; next.message = 'Failed attempt saved; a bounded retry is eligible.';
-    return advance(next, {}, now);
+    return {record: next, effects};
   }
   if (step.review === 'required') {
     next.status = 'review'; next.message = 'Saved work needs independent review. A successful worker is not accepted project completion.';
@@ -191,7 +193,6 @@ function advance(record, observed, now) {
   } else {
     next.step += 1; next.attempt = 0; next.status = 'pending'; next.branch = '';
     next.message = 'The next committed step is eligible; no unreviewed code was merged.';
-    return advance(next, {}, now);
   }
   return {record: next, effects};
 }
@@ -235,8 +236,18 @@ class Store {
       tree: [{path: STATE_FILE, mode: '100644', type: 'blob', content}, ...this.archives]});
     const commit = await this.github.rest.git.createCommit({...this.repo, message: 'Codex: checkpoint unattended work state\n\nSkills: none (deterministic controller state)',
       tree: tree.data.sha, parents: this.head ? [this.head] : []});
-    if (this.head) await this.github.rest.git.updateRef({...this.repo, ref: `heads/${STATE_REF}`, sha: commit.data.sha, force: false});
-    else await this.github.rest.git.createRef({...this.repo, ref: `refs/heads/${STATE_REF}`, sha: commit.data.sha});
+    try {
+      if (this.head) await this.github.rest.git.updateRef({...this.repo, ref: `heads/${STATE_REF}`, sha: commit.data.sha, force: false});
+      else await this.github.rest.git.createRef({...this.repo, ref: `refs/heads/${STATE_REF}`, sha: commit.data.sha});
+    } catch (error) {
+      if ([409, 422].includes(error.status)) {
+        try {
+          const latest = await this.github.rest.git.getRef({...this.repo, ref: `heads/${STATE_REF}`});
+          if (latest.data.object.sha !== this.head) error.continuityConflict = true;
+        } catch { /* A permission/deletion error is not a retryable lease conflict. */ }
+      }
+      throw error;
+    }
     this.head = commit.data.sha;
     this.tree = tree.data.sha; this.archives = [];
   }
@@ -272,19 +283,24 @@ async function report(github, repo, record) {
   record.reported_status = record.status;
 }
 
-async function controller({github, context, root = process.cwd(), now = Date.now(), worker = 'codex-task.yml', watchdog = true, contractPaths, store}) {
+async function controllerOnce({github, context, root = process.cwd(), now = Date.now(), worker = 'codex-task.yml', relatedWorkers, watchdog = true, contractPaths, store}) {
   const repo = context.repo;
   store ||= new Store(github, repo);
   const state = await store.load();
   const event = context.payload;
+  relatedWorkers ||= fs.existsSync(path.join(root, '.github/workflows/codex-build.yml')) ? ['codex-build.yml'] : [];
+  const workers = [worker, ...relatedWorkers];
+  if (workers.length > 4 || workers.some(name => !/^[A-Za-z0-9_-]+\.yml$/.test(name))) throw Error('Invalid related worker contract');
   contractPaths ||= [`.github/workflows/${worker}`, '.github/workflows/codex-continuity.yml',
     '.github/workflows/codex-continuity-watchdog.yml', '.github/scripts/codex_continuity.cjs',
-    '.github/scripts/codex_task_run.py', '.github/scripts/codex_task_patch.py', '.github/scripts/codex_result.cjs'];
+    '.github/scripts/codex_task_run.py', '.github/scripts/codex_task_patch.py', '.github/scripts/codex_result.cjs',
+    ...relatedWorkers.map(name => `.github/workflows/${name}`)];
+  let armed = false;
   async function enableWatchdog() {
-    if (watchdog && state.watchdog_enabled !== true) {
+    if (watchdog && !armed) {
       // Arm independent recovery before saving runnable work or dispatching a model.
       await github.rest.actions.enableWorkflow({...repo, workflow_id: 'codex-continuity-watchdog.yml'});
-      state.watchdog_enabled = true;
+      state.watchdog_enabled = true; armed = true;
     }
   }
   if (context.eventName === 'issue_comment') {
@@ -309,49 +325,70 @@ async function controller({github, context, root = process.cwd(), now = Date.now
       }
     } else {
       const record = state.records.find(x => x.id === command.value);
-      if (!record) throw Error('Unknown continuity request');
-      if (command.command === 'archive') {
-        if (!TERMINAL.has(record.status)) throw Error('Pause/finish and review this plan before archiving it');
-        if (record.request_id && !record.history.some(item => item.request_id === record.request_id)) {
-          if (!record.run_id) throw Error('An unconfirmed dispatch cannot be archived');
-          const actual = await github.rest.actions.getWorkflowRun({...repo, run_id: record.run_id});
-          if (actual.data.status !== 'completed') throw Error('The worker must be confirmed stopped before archiving');
-        }
-        record.archived_by = event.comment.user.login; record.archived_at = iso(now);
-        store.archive(record); state.records.splice(state.records.indexOf(record), 1);
-        await store.save(state);
-        await github.rest.issues.createComment({...repo, issue_number: record.issue,
-          body: `Plan ${record.id} archived by @${record.archived_by}: ${STATE_REF}:archive/${record.id}.json. Its ${record.status} outcome and evidence were preserved; no work was marked complete by archival.`});
-      } else if (command.command === 'pause') {
-        record.status = 'paused'; record.message = 'Paused by a repository writer; no new work will start.';
-        if (record.run_id) await github.rest.actions.cancelWorkflowRun({...repo, run_id: record.run_id}).catch(e => { if (![409, 422].includes(e.status)) throw e; });
-      } else if (command.command === 'resume') {
-        if (record.status !== 'paused' || record.request_id && !record.history.some(x => x.request_id === record.request_id)) throw Error('Cannot resume an unconfirmed or still-active run');
-        record.status = 'retry'; record.message = 'Resume requested; original budgets still apply.';
-      } else {
-        if (record.status !== 'review') throw Error('Only a saved review checkpoint can be accepted');
-        if (record.branch) {
-          const branch = await github.rest.git.getRef({...repo, ref: `heads/${record.branch}`});
-          const pulls = await github.rest.pulls.list({...repo, state: 'closed', head: `${repo.owner}:${record.branch}`, per_page: 20});
-          if (!pulls.data.some(pr => pr.merged_at && pr.head.sha === branch.data.object.sha
-              && pr.base.ref === event.repository.default_branch)) throw Error('Review branch must be merged through its reviewed PR before dependent work continues');
-        }
-        if (record.step + 1 === record.plan.steps.length) {
-          record.status = 'complete'; record.message = 'Final results accepted by a repository writer.';
+      if (!record) {
+        if (!(store.archived && await store.archived(command.value))) throw Error('Unknown continuity request');
+      } else if (!(record.commands || []).includes(String(event.comment.id))) {
+        record.commands ||= [];
+        if (record.commands.length >= 128) throw Error('This plan has reached its command limit; archive and submit a reviewed replacement');
+        record.commands.push(String(event.comment.id));
+        if (command.command === 'archive') {
+          if (!TERMINAL.has(record.status)) throw Error('Pause/finish and review this plan before archiving it');
+          if (record.request_id && !record.history.some(item => item.request_id === record.request_id)) {
+            if (!record.run_id) throw Error('An unconfirmed dispatch cannot be archived');
+            const actual = await github.rest.actions.getWorkflowRun({...repo, run_id: record.run_id});
+            if (actual.data.status !== 'completed') throw Error('The worker must be confirmed stopped before archiving');
+          }
+          record.archived_by = event.comment.user.login; record.archived_at = iso(now);
+          store.archive(record); state.records.splice(state.records.indexOf(record), 1);
+          await store.save(state);
+          await github.rest.issues.createComment({...repo, issue_number: record.issue,
+            body: `Plan ${record.id} archived by @${record.archived_by}: ${STATE_REF}:archive/${record.id}.json. Its ${record.status} outcome and evidence were preserved; no work was marked complete by archival.`});
+        } else if (command.command === 'pause') {
+          record.status = 'paused'; record.message = 'Paused by a repository writer; no new work will start.';
+          if (record.run_id) await github.rest.actions.cancelWorkflowRun({...repo, run_id: record.run_id}).catch(e => { if (![409, 422].includes(e.status)) throw e; });
+        } else if (command.command === 'resume') {
+          if (record.status !== 'paused' || record.request_id && !record.history.some(x => x.request_id === record.request_id)) throw Error('Cannot resume an unconfirmed or still-active run');
+          record.status = 'retry'; record.message = 'Resume requested; original budgets still apply.';
         } else {
-          record.step += 1; record.attempt = 0; record.status = 'pending'; record.branch = '';
-          record.message = 'Reviewed step accepted; next committed step is eligible.';
+          if (record.status !== 'review') throw Error('Only a saved review checkpoint can be accepted');
+          if (record.branch) {
+            const branch = await github.rest.git.getRef({...repo, ref: `heads/${record.branch}`});
+            const pulls = await github.rest.pulls.list({...repo, state: 'closed', head: `${repo.owner}:${record.branch}`, per_page: 20});
+            if (!pulls.data.some(pr => pr.merged_at && pr.head.sha === branch.data.object.sha
+                && pr.base.ref === event.repository.default_branch)) throw Error('Review branch must be merged through its reviewed PR before dependent work continues');
+          }
+          if (record.step + 1 === record.plan.steps.length) {
+            record.status = 'complete'; record.message = 'Final results accepted by a repository writer.';
+          } else {
+            record.step += 1; record.attempt = 0; record.status = 'pending'; record.branch = '';
+            record.message = 'Reviewed step accepted; next committed step is eligible.';
+          }
         }
-      }
-      if (command.command !== 'archive') {
-        if (ACTIVE.has(record.status)) await enableWatchdog();
-        await report(github, repo, record);
-        await store.save(state);
+        if (command.command !== 'archive') {
+          if (ACTIVE.has(record.status)) await enableWatchdog();
+          await report(github, repo, record);
+          await store.save(state);
+        }
       }
     }
   }
   if (state.records.some(record => ACTIVE.has(record.status))) await enableWatchdog();
   let runs;
+  async function observedRuns() {
+    if (!runs) {
+      const groups = await Promise.all(workers.map(async name => (await github.rest.actions.listWorkflowRuns({...repo, workflow_id: name, per_page: 100})).data.workflow_runs
+        .map(item => ({...item, worker: name}))));
+      runs = groups.flat();
+    }
+    return runs;
+  }
+  async function busy(record) {
+    const reserved = state.records.some(other => other.id !== record.id
+      && ['dispatching', 'queued', 'running', 'unconfirmed'].includes(other.status));
+    return reserved || (await observedRuns()).some(item => item.status !== 'completed'
+      && item.head_branch === event.repository.default_branch
+      && item.head_repository?.full_name === `${repo.owner}/${repo.repo}`);
+  }
   for (let index = 0; index < state.records.length; index += 1) {
     let record = state.records[index];
     if (!ACTIVE.has(record.status) && record.status !== 'review' && !(record.status === 'paused' && record.request_id)) continue;
@@ -362,9 +399,17 @@ async function controller({github, context, root = process.cwd(), now = Date.now
         || JSON.stringify(contractHashes(root, record.contracts.map(item => item.path))) !== JSON.stringify(record.contracts);
     } catch { changed = true; }
     let run = null, result = null;
+    const stoppedByBudget = now >= Date.parse(record.expires_at) || record.usage_unknown
+      || record.total_runs >= record.plan.limits.max_runs || record.input_tokens >= record.plan.limits.max_input_tokens
+      || record.attempt >= record.plan.steps[record.step].attempts;
+    if ((record.status === 'pending' || record.status === 'retry') && !changed && !stoppedByBudget) {
+      if (await busy(record)) {
+        record.observed_at = iso(now); record.message = 'Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.';
+        await report(github, repo, record); await store.save(state); continue;
+      }
+    }
     if (record.request_id && record.status !== 'pending' && record.status !== 'retry') {
-      runs ||= (await github.rest.actions.listWorkflowRuns({...repo, workflow_id: worker, per_page: 100})).data.workflow_runs;
-      const matches = runs.filter(item => item.event === 'workflow_dispatch'
+      const matches = (await observedRuns()).filter(item => item.worker === worker && item.event === 'workflow_dispatch'
         && item.head_branch === event.repository.default_branch
         && item.head_repository?.full_name === `${repo.owner}/${repo.repo}`
         && /^[a-f0-9]{40}$/.test(item.head_sha || '')
@@ -379,6 +424,18 @@ async function controller({github, context, root = process.cwd(), now = Date.now
         const comments = await github.paginate(github.rest.issues.listComments, {...repo, issue_number: record.issue, per_page: 100});
         result = comments.filter(item => item.user.login === 'github-actions[bot]')
           .map(item => receipt(item.body, record.request_id, run.id)).find(Boolean) || null;
+        if (!result && ['cancelled', 'failure'].includes(run.conclusion)) {
+          const jobs = (await github.rest.actions.listJobsForWorkflowRun({...repo, run_id: run.id, per_page: 100})).data.jobs;
+          const executeSkipped = jobs.some(job => job.name === 'run'
+            && job.steps?.some(step => step.name === 'Execute one committed brief' && step.conclusion === 'skipped'));
+          const stableNoJobs = !jobs.length && record.no_jobs_observed_at
+            && now - Date.parse(record.no_jobs_observed_at) >= 60000;
+          if (!jobs.length && !record.no_jobs_observed_at) record.no_jobs_observed_at = iso(now);
+          if (stableNoJobs || executeSkipped) result = {run_id: run.id, request_id: record.request_id,
+            worker: 'cancelled', save: 'skipped', has_patch: false, held_count: 0, input_tokens: 0,
+            usage_known: true, branch: '', checkpoint_status: 'not_available',
+            not_started_evidence: stableNoJobs ? 'repeated_no_jobs' : 'execute_step_skipped'};
+        }
       }
     }
     if (record.status === 'paused' && record.request_id) {
@@ -396,8 +453,15 @@ async function controller({github, context, root = process.cwd(), now = Date.now
       }
       await report(github, repo, record); await store.save(state); continue;
     }
-    const transition = advance(record, {run, receipt: result, changed}, now);
+    let transition = advance(record, {run, receipt: result, changed}, now);
     record = state.records[index] = transition.record;
+    if (['pending', 'retry'].includes(record.status) && !transition.effects.length) {
+      if (await busy(record)) record.message = 'Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.';
+      else {
+        transition = advance(record, {}, now);
+        record = state.records[index] = transition.record;
+      }
+    }
     // Reserve/persist before an external dispatch. An uncertain dispatch is never retried blindly.
     await store.save(state);
     for (const effect of transition.effects) {
@@ -428,6 +492,18 @@ async function controller({github, context, root = process.cwd(), now = Date.now
     }
   }
   return state;
+}
+
+async function controller(options) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      return await controllerOnce(options);
+    } catch (error) {
+      if (!error.continuityConflict || attempt === 5) throw error;
+      // Only deterministic state reconciliation retries. Durable attempt IDs prevent extra model calls.
+      await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100 * (attempt + 1)));
+    }
+  }
 }
 
 module.exports = {STATE_REF, STATE_FILE, regular, loadPlan, parse, createRecord, receipt, advance, Store, summary, controller, contractHashes};

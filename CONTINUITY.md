@@ -35,6 +35,8 @@ Commit a plan under docs/, codex/ or tools/, with one to eight steps and explici
 
 A repository writer starts it by commenting `/codex-plan docs/plan.json` on an issue or PR. The agent authors and submits that brief under the user's original authorisation; the user does not need to relay it. The controller checks paths and hashes, saves state in the separate `codex/continuity-state` branch, reserves a unique attempt before dispatch and then verifies the actual Actions run. An uncertain dispatch is reconciled rather than blindly repeated.
 
+Every immutable command comment has its own intake concurrency group. State writes use non-forced compare-and-swap recovery with bounded retries, and command IDs make redelivery idempotent. Completion/watchdog events may coalesce after the request is durable. The repository queue starts at most one registered/observed committed-brief worker at once; it also observes an installed codex-build.yml so the app's shared authentication session is preserved. Other plans stay explicitly pending. A cancelled attempt is retried only when Actions proves execution never started; an unknown executed result stays blocked.
+
 Plan and brief hashes, plus the installed worker/controller/transport contract, are frozen. Unrelated default-branch commits do not invalidate a plan; each actual worker revision is recorded separately. Changing the task definitions or worker permissions/source pauses the plan for review. Workers still start only from the trusted current default branch, never an arbitrary candidate ref.
 
 Each normal worker gets a25-minute execution deadline and a15-minute trace-silence limit. It retains read-only partial patches, trace progress and a checkpoint before the model deadline, leaving time for the trusted result job to save its review branch. Input usage is measured after each completed model turn; that guard stops subsequent calls and is not a hard token cap within a call. Unknown usage blocks further automatic calls. Plan runs, attempts and elapsed time have hard controller limits; no loop renews its own budget.
@@ -52,6 +54,8 @@ The implementation never merges or deploys candidate code. A human or the other 
 After reviewing a stopped blocked/paused plan, a writer may use `/codex-archive REQUEST_ID` to retain its outcome and evidence outside the hot registry. Archival is not acceptance and cannot hide an active/unconfirmed worker. Redelivery of an archived request never starts it again.
 
 This does not detect promises made in unregistered chats, create account-level instructions, or make a finished chat turn an always-running coordinator. Ordinary chats need a supported cloud handoff before background execution can be claimed. The public toolkit's fixed harmless acceptance worker uses no model or credential and is separate from production project work.
+
+The legacy `/codex-run` command still submits one bounded worker and does not register a durable plan. Use `/codex-plan` for a multi-step or recovery-monitored handoff. Unregistered legacy/manual requests can still be limited by their existing runner/concurrency behaviour; this controller does not retroactively claim to own them.
 
 ## Acceptance before claiming unattended reliability
 

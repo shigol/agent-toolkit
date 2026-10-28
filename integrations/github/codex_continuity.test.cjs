@@ -86,7 +86,9 @@ test('a successful read-only step starts the next committed step immediately; fi
   const f = fixture();
   try {
     const one = reserve(f.plan);
-    const two = advance(one, {run: completed(), receipt: result(3, one.request_id)}, now + 60000);
+    const eligible = advance(one, {run: completed(), receipt: result(3, one.request_id)}, now + 60000);
+    assert.equal(eligible.record.status, 'pending');
+    const two = advance(eligible.record, {}, now + 60000);
     assert.equal(two.record.step, 1);
     assert.equal(two.record.total_runs, 2);
     assert.equal(two.effects[0].type, 'dispatch');
@@ -101,10 +103,13 @@ test('failed attempts retry within the declared cap and then stop', () => {
   try {
     let item = reserve(f.plan);
     let next = advance(item, {run: {...completed(), conclusion: 'failure'}, receipt: result(3, item.request_id, {worker: 'failure'})}, now + 60000);
+    assert.equal(next.record.status, 'retry');
+    next = advance(next.record, {}, now + 60000);
     assert.equal(next.record.attempt, 2);
     assert.equal(next.effects[0].type, 'dispatch');
     item = next.record;
     next = advance(item, {run: {...completed(4), conclusion: 'failure'}, receipt: result(4, item.request_id, {worker: 'failure'})}, now + 120000);
+    next = advance(next.record, {}, now + 120000);
     assert.equal(next.record.status, 'blocked');
     assert.equal(next.record.total_runs, 2);
     assert.equal(next.effects.length, 0);
@@ -131,6 +136,7 @@ test('unknown usage, exceeded usage and elapsed budgets cannot start another mod
     assert.equal(next.record.status, 'blocked');
     item = reserve(f.plan);
     next = advance(item, {run: completed(), receipt: result(3, item.request_id, {input_tokens: 1000})}, now + 60000);
+    next = advance(next.record, {}, now + 60000);
     assert.equal(next.record.status, 'blocked');
     next = advance(item, {run: {...completed(), status: 'in_progress'}}, now + 91 * 60000);
     assert.equal(next.record.status, 'paused');
@@ -169,7 +175,8 @@ function service() {
   const calls = [], comments = [], runs = [];
   const github = {rest: {actions: {
     listWorkflowRuns: async () => ({data: {workflow_runs: runs}}),
-    createWorkflowDispatch: async call => { calls.push(call); runs.push({id: 3, status: 'in_progress', event: 'workflow_dispatch',
+    listJobsForWorkflowRun: async () => ({data: {jobs: []}}),
+    createWorkflowDispatch: async call => { calls.push(call); runs.push({id: runs.length + 3, status: 'in_progress', event: 'workflow_dispatch',
       head_branch: 'main', head_repository: {full_name: 'owner/project'},
       head_sha: 'b'.repeat(40),
       display_title: `Codex request ${call.inputs.request_id} — ${call.inputs.brief}`, html_url: 'https://example.invalid/run/3'}); },
@@ -184,8 +191,10 @@ function service() {
   return {github, calls, comments, runs};
 }
 function context(body = '/codex-plan docs/plan.json') {
+  const commandId = body.startsWith('/codex-pause ') ? 100 : body.startsWith('/codex-resume ') ? 101
+    : body.startsWith('/codex-accept ') ? 102 : body.startsWith('/codex-archive ') ? 103 : 99;
   return {eventName: 'issue_comment', repo: {owner: 'owner', repo: 'project'}, payload: {
-    repository: {default_branch: 'main'}, comment: {id: 99, body, user: {login: 'owner'}}, issue: {number: 1}}};
+    repository: {default_branch: 'main'}, comment: {id: commandId, body, user: {login: 'owner'}}, issue: {number: 1}}};
 }
 
 test('duplicate request delivery and controller crash after dispatch do not duplicate work', async () => {
@@ -222,7 +231,7 @@ test('a same-title PR/fork run cannot impersonate the trusted default-branch wor
     api.runs[0].head_repository = {full_name: 'someone/fork'};
     await controller({github: api.github, context: context(), root: f.root, store, now: now + 11 * 60000});
     assert.equal(store.value.records[0].status, 'unconfirmed');
-    assert.equal(store.value.records[0].run_id, undefined);
+    assert.equal(store.value.records[0].run_id, null);
     assert.equal(api.calls.length, 1);
   } finally { f.close(); }
 });
@@ -356,5 +365,153 @@ test('reviewed stopped plans can be archived without calling them complete; acti
     assert.equal(store.value.records.length, 0);
     assert.equal(store.old.has('99'), true);
     assert.match(api.comments.at(-1).body, /no work was marked complete/);
+  } finally { f.close(); }
+});
+
+function atomicBackend(api) {
+  let head = null, serial = 0, conflicts = 0;
+  const trees = new Map(), commits = new Map();
+  const missing = () => { const error = Error('Not found'); error.status = 404; return error; };
+  const collision = () => { conflicts += 1; const error = Error('Reference changed'); error.status = 422; return error; };
+  api.github.rest.git = {
+    getRef: async () => { if (!head) throw missing(); return {data: {object: {sha: head}}}; },
+    getCommit: async call => ({data: {tree: {sha: commits.get(call.commit_sha).tree}}}),
+    createTree: async call => { const value = {...trees.get(call.base_tree)};
+      for (const item of call.tree) value[item.path] = item.content;
+      const id = `tree-${++serial}`; trees.set(id, value); return {data: {sha: id}}; },
+    createCommit: async call => { const id = `commit-${++serial}`; commits.set(id, {tree: call.tree, parents: call.parents}); return {data: {sha: id}}; },
+    createRef: async call => { if (head) throw collision(); head = call.sha; return {}; },
+    updateRef: async call => { if (commits.get(call.sha).parents[0] !== head) throw collision(); head = call.sha; return {}; }
+  };
+  api.github.rest.repos.getContent = async call => {
+    const content = trees.get(commits.get(call.ref)?.tree)?.[call.path];
+    if (content === undefined) throw missing();
+    return {data: {type: 'file', encoding: 'base64', size: Buffer.byteLength(content), content: Buffer.from(content).toString('base64')}};
+  };
+  return {state: () => JSON.parse(trees.get(commits.get(head).tree)['state.json']), conflicts: () => conflicts};
+}
+
+test('concurrent immutable intakes survive CAS conflicts and a coalesced completion is recovered by a watchdog tick', async () => {
+  const f = fixture(), api = service(), backend = atomicBackend(api);
+  try {
+    const first = context(), second = context(); second.payload.comment.id = 1000;
+    await Promise.all([
+      controller({github: api.github, context: first, root: f.root, now}),
+      controller({github: api.github, context: second, root: f.root, now})
+    ]);
+    assert.ok(backend.conflicts() > 0, 'the test must exercise an actual conflicting state write');
+    assert.equal(backend.state().records.length, 2);
+    assert.equal(api.calls.filter(call => call.inputs).length, 1, 'one worker at a time; the second plan is durable pending work');
+    const active = backend.state().records.find(item => item.status === 'dispatching' || item.status === 'running');
+    const run = api.runs[0]; run.status = 'completed'; run.conclusion = 'success'; run.updated_at = isoForTest(now + 60000);
+    api.comments.push({id: 8000, user: {login: 'github-actions[bot]'}, body: `<!-- codex-result:${run.id} -->\n${JSON.stringify(result(run.id, active.request_id))}`});
+    // Deliberately do not deliver workflow_run. The independent tick must reconcile durable state.
+    const tick = {eventName: 'workflow_dispatch', repo: first.repo, payload: {repository: {default_branch: 'main'}}};
+    await controller({github: api.github, context: tick, root: f.root, now: now + 120000});
+    assert.equal(api.calls.filter(call => call.inputs).length, 2);
+    assert.equal(backend.state().records.length, 2);
+    assert.ok(backend.state().records.some(item => item.history.some(past => past.run_id === run.id)));
+  } finally { f.close(); }
+});
+function isoForTest(value) { return new Date(value).toISOString(); }
+
+test('redelivery of an accepted command cannot accept a later step without another review', async () => {
+  const f = fixture(), api = service(), store = new MemoryStore();
+  try {
+    await controller({github: api.github, context: context(), root: f.root, store, now});
+    store.value.records[0].status = 'review'; api.runs[0].status = 'completed';
+    await controller({github: api.github, context: context('/codex-accept 99'), root: f.root, store, now: now + 1000});
+    assert.equal(store.value.records[0].step, 1);
+    store.value.records[0].status = 'review';
+    await controller({github: api.github, context: context('/codex-accept 99'), root: f.root, store, now: now + 2000});
+    assert.equal(store.value.records[0].status, 'review');
+    assert.equal(store.value.records[0].step, 1);
+  } finally { f.close(); }
+});
+
+test('installed legacy builds defer planner dispatch; unrelated CI does not join the worker gate', async () => {
+  const f = fixture(), api = service(), store = new MemoryStore();
+  const legacy = {id: 44, status: 'in_progress', head_branch: 'main', head_repository: {full_name: 'owner/project'}};
+  fs.writeFileSync(path.join(f.root, '.github/workflows/codex-build.yml'), 'Legacy worker, same app session.');
+  api.github.rest.actions.listWorkflowRuns = async call => ({data: {workflow_runs: call.workflow_id === 'codex-build.yml' ? [legacy] : api.runs}});
+  try {
+    await controller({github: api.github, context: context(), root: f.root, store, now});
+    assert.equal(api.calls.length, 0);
+    assert.equal(store.value.records[0].status, 'pending');
+    legacy.status = 'completed';
+    const tick = {eventName: 'workflow_dispatch', repo: context().repo, payload: {repository: {default_branch: 'main'}}};
+    await controller({github: api.github, context: tick, root: f.root, store, now: now + 1000});
+    assert.equal(api.calls.length, 1);
+  } finally { f.close(); }
+});
+
+test('a provably unstarted canceled attempt may retry, but unknown execution never does', async () => {
+  const f = fixture(), api = service(), store = new MemoryStore();
+  try {
+    await controller({github: api.github, context: context(), root: f.root, store, now});
+    const run = api.runs[0]; run.status = 'completed'; run.conclusion = 'cancelled'; run.updated_at = isoForTest(now);
+    const tick = {eventName: 'workflow_dispatch', repo: context().repo, payload: {repository: {default_branch: 'main'}}};
+    await controller({github: api.github, context: tick, root: f.root, store, now: now + 1000});
+    assert.equal(api.calls.length, 1, 'one empty jobs response is not enough proof');
+    await controller({github: api.github, context: tick, root: f.root, store, now: now + 62000});
+    assert.equal(api.calls.length, 2);
+    assert.equal(store.value.records[0].history[0].result.not_started_evidence, 'repeated_no_jobs');
+  } finally { f.close(); }
+  const unknown = fixture(), secondApi = service(), secondStore = new MemoryStore();
+  try {
+    await controller({github: secondApi.github, context: context(), root: unknown.root, store: secondStore, now});
+    secondApi.runs[0].status = 'completed'; secondApi.runs[0].conclusion = 'cancelled'; secondApi.runs[0].updated_at = isoForTest(now);
+    secondApi.github.rest.actions.listJobsForWorkflowRun = async () => ({data: {jobs: [{name: 'run',
+      steps: [{name: 'Execute one committed brief', conclusion: 'cancelled'}]}]}});
+    const tick = {eventName: 'workflow_dispatch', repo: context().repo, payload: {repository: {default_branch: 'main'}}};
+    await controller({github: secondApi.github, context: tick, root: unknown.root, store: secondStore, now: now + 11 * 60000});
+    assert.equal(secondStore.value.records[0].status, 'blocked');
+    assert.equal(secondApi.calls.length, 1, 'a possibly executed model call must not be silently repeated');
+  } finally { unknown.close(); }
+});
+
+test('queued plans still expire while another worker keeps the repository gate busy', async () => {
+  const f = fixture(), api = service(), store = new MemoryStore();
+  fs.writeFileSync(path.join(f.root, '.github/workflows/codex-build.yml'), 'Legacy worker.');
+  api.github.rest.actions.listWorkflowRuns = async call => ({data: {workflow_runs: call.workflow_id === 'codex-build.yml'
+    ? [{id: 44, status: 'in_progress', head_branch: 'main', head_repository: {full_name: 'owner/project'}}] : []}});
+  try {
+    await controller({github: api.github, context: context(), root: f.root, store, now});
+    const tick = {eventName: 'workflow_dispatch', repo: context().repo, payload: {repository: {default_branch: 'main'}}};
+    await controller({github: api.github, context: tick, root: f.root, store, now: now + 91 * 60000});
+    assert.equal(store.value.records[0].status, 'paused');
+    assert.equal(api.calls.length, 0);
+  } finally { f.close(); }
+});
+
+test('immutable intake events cannot share the coalescing reconcile concurrency group', () => {
+  for (const file of ['codex-continuity.yml', '../../.github/workflows/continuity-controller.yml']) {
+    const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
+    assert.match(content, /group:.*issue_comment.*github\.event\.comment\.id/);
+    assert.match(content, /cancel-in-progress: false/);
+  }
+});
+
+test('a concurrent intake cannot leave an active plan with the watchdog disabled', async () => {
+  const f = fixture(), api = service(), backend = atomicBackend(api);
+  let enabled = true, inserted = false;
+  api.github.rest.actions.enableWorkflow = async () => { enabled = true; };
+  try {
+    await controller({github: api.github, context: context(), root: f.root, now});
+    api.runs[0].status = 'completed';
+    const store = new Store(api.github, context().repo), state = await store.load();
+    state.records[0].status = 'complete'; await store.save(state);
+    api.github.rest.actions.disableWorkflow = async () => {
+      if (!inserted) {
+        inserted = true;
+        const event = context(); event.payload.comment.id = 1001;
+        await controller({github: api.github, context: event, root: f.root, now: now + 1000});
+      }
+      enabled = false;
+    };
+    const tick = {eventName: 'workflow_dispatch', repo: context().repo, payload: {repository: {default_branch: 'main'}}};
+    await controller({github: api.github, context: tick, root: f.root, now: now + 2000});
+    assert.equal(enabled, true);
+    assert.ok(backend.state().records.some(record => ['dispatching', 'queued', 'running'].includes(record.status)));
   } finally { f.close(); }
 });
