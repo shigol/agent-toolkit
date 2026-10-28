@@ -62,6 +62,8 @@ class ProjectSetupTests(unittest.TestCase):
         self.assertNotIn('skill-routes:start', (self.project / 'AGENTS.md').read_text())
         self.assertIn('skill-routes:start', (self.project / 'CLAUDE.md').read_text())
         self.assertTrue((self.project / '.github/workflows/agent-toolkit-merge.yml').is_file())
+        self.assertTrue((self.project / '.github/workflows/codex-continuity.yml').is_file())
+        self.assertTrue((self.project / '.github/scripts/codex_task_run.py').is_file())
         before = (self.project / 'CLAUDE.md').read_bytes()
         self.initialize()
         self.assertEqual(before, (self.project / 'CLAUDE.md').read_bytes())

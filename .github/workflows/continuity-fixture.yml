@@ -1,0 +1,104 @@
+name: Continuity harmless fixture
+run-name: Codex request ${{ inputs.request_id }} — ${{ inputs.brief }}
+on:
+  workflow_dispatch:
+    inputs:
+      brief:
+        description: Fixed harmless fixture brief
+        required: true
+      mode:
+        description: Reserved compatibility field; this worker never calls a model
+        default: task
+      request_issue:
+        description: Same-repository issue or PR for the result
+        required: true
+      request_id:
+        description: Controller-reserved attempt ID
+        required: true
+      previous_run:
+        description: Reserved compatibility field for a same-plan predecessor
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: continuity-harmless-worker
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      worker: ${{ steps.execute.outcome }}
+      execution: ${{ steps.execute.outcome }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Execute fixed harmless probe
+        id: execute
+        continue-on-error: true
+        env:
+          BRIEF: ${{ inputs.brief }}
+          REQUEST: ${{ inputs.request_id }}
+        run: python3 integrations/github/continuity_fixture.py "$BRIEF" "$REQUEST" "$RUNNER_TEMP/codex-task"
+      - name: Save partial or complete review patch
+        if: always()
+        run: python3 integrations/github/codex_task_patch.py "$RUNNER_TEMP/codex-task"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codex-task-${{ github.run_id }}
+          path: ${{ runner.temp }}/codex-task/
+          retention-days: 14
+          if-no-files-found: error
+  result:
+    needs: run
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: codex-task-${{ github.run_id }}
+          path: ${{ runner.temp }}/codex-task
+      - name: Save fixture checkpoint on a separate review branch
+        id: save
+        env:
+          RESULT_BRANCH: codex/task-${{ github.run_id }}
+        run: |
+          patch="$RUNNER_TEMP/codex-task/changes.patch"
+          if [ ! -s "$patch" ]; then exit 0; fi
+          python3 integrations/github/codex_task_patch.py apply "$patch"
+          git switch -c "$RESULT_BRANCH"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -c core.hooksPath=/dev/null commit -m "Codex: save fictional continuity checkpoint" -m "Skills: none (deterministic fixture transport)"
+          git push origin "$RESULT_BRANCH"
+          echo "branch=$RESULT_BRANCH" >> "$GITHUB_OUTPUT"
+      - name: Return typed result without claiming task acceptance
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          REQUEST: ${{ inputs.request_id }}
+          ISSUE: ${{ inputs.request_issue }}
+          WORKER: ${{ needs.run.outputs.worker }}
+          EXECUTION: ${{ needs.run.outputs.execution }}
+          SAVE: ${{ steps.save.outcome }}
+          BRANCH: ${{ steps.save.outputs.branch }}
+        with:
+          script: |
+            const {result} = require('./integrations/github/codex_result.cjs');
+            const data = result(`${process.env.RUNNER_TEMP}/codex-task`, {run_id: context.runId,
+              request_id: process.env.REQUEST, worker: process.env.WORKER, execution: process.env.EXECUTION,
+              save: process.env.SAVE, branch: process.env.BRANCH});
+            const issue = Number(process.env.ISSUE);
+            if (!Number.isSafeInteger(issue) || issue < 1) throw Error('Invalid request issue');
+            await github.rest.issues.createComment({...context.repo, issue_number: issue,
+              body: `<!-- codex-result:${context.runId} -->\n${JSON.stringify(data)}\nHarmless continuity fixture; no model call, credentials, merge or deployment. Run: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});

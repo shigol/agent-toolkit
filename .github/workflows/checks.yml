@@ -33,6 +33,7 @@ jobs:
           python3 -m unittest discover -s tests -v
           node tests/browser-discovery.test.mjs
           node integrations/github/codex_request.test.cjs
+          node integrations/github/codex_continuity.test.cjs
       - name: Verify one-command setup on a fresh repository
         run: |
           target=$(mktemp -d)

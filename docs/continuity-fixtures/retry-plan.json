@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "title": "Harmless cloud fail/retry and next-step acceptance",
+  "limits": {"max_runs": 3, "max_minutes": 30, "max_input_tokens": 1},
+  "steps": [
+    {"id": "retry", "brief": "docs/continuity-fixtures/fail-once.md", "attempts": 2, "review": "none"},
+    {"id": "next", "brief": "docs/continuity-fixtures/success.md", "attempts": 1, "review": "none"}
+  ]
+}
