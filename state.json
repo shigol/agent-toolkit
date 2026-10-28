@@ -189,8 +189,10 @@
           "path": "integrations/github/codex_monitor.cjs",
           "sha256": "1e7dbf556f0a2fc838980da0abb78f95d0de0cffef626e9066c8e21969b9dc0b"
         }
-      ]
+      ],
+      "monitor_requested_at": "2026-10-28T22:19:24.133Z"
     }
   ],
-  "watchdog_enabled": true
+  "watchdog_enabled": true,
+  "monitor_requested_at": "2026-10-28T22:19:24.133Z"
 }
