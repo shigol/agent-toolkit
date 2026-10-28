@@ -10,7 +10,7 @@ permissions:
   contents: write
   actions: write
   issues: write
-  pull-requests: read
+  pull-requests: write
 concurrency:
   group: ${{ github.event_name == 'issue_comment' && format('codex-continuity-intake-{0}', github.event.comment.id) || 'codex-continuity-controller' }}
   cancel-in-progress: false

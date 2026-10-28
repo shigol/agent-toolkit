@@ -7,7 +7,7 @@ permissions:
   contents: write
   actions: write
   issues: write
-  pull-requests: read
+  pull-requests: write
 concurrency:
   group: codex-continuity-controller
   cancel-in-progress: false
