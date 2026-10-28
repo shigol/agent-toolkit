@@ -269,7 +269,7 @@
       "response_due_at": "2026-10-28T22:34:33.772Z",
       "history": [],
       "commands": [],
-      "message": "Dispatch reserved; waiting for a verified Actions run.",
+      "message": "Dispatch accepted; waiting to verify the actual run.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -323,7 +323,7 @@
       "deadline_notices": [
         "start"
       ],
-      "reported_status": "pending",
+      "reported_status": "dispatching",
       "run_id": null,
       "run_url": "",
       "run_revision": null,
