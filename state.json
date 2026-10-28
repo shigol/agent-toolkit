@@ -39,7 +39,7 @@
       "response_due_at": "2026-10-28T21:59:47.417Z",
       "history": [],
       "commands": [],
-      "message": "Dispatch reserved; waiting for a verified Actions run.",
+      "message": "Dispatch accepted; waiting to verify the actual run.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -78,7 +78,11 @@
       "run_url": "",
       "run_revision": null,
       "request_id": "continuity-6481439101-0-1",
-      "dispatched_at": "2026-10-28T21:44:47.417Z"
+      "dispatched_at": "2026-10-28T21:44:47.417Z",
+      "comment_id": 6481443796,
+      "last_notice_at": "2026-10-28T21:44:47.417Z",
+      "deadline_notices": [],
+      "reported_status": "dispatching"
     }
   ],
   "watchdog_enabled": true
