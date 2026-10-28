@@ -141,7 +141,7 @@
       "input_tokens": 0,
       "started_at": "2026-10-28T22:19:24.133Z",
       "expires_at": "2026-10-28T23:34:24.133Z",
-      "observed_at": "2026-10-28T22:22:08.899Z",
+      "observed_at": "2026-10-28T22:24:46.645Z",
       "monitor_epoch": 0,
       "start_due_at": "2026-10-28T22:24:24.133Z",
       "response_due_at": "2026-10-28T22:34:24.133Z",
@@ -197,8 +197,8 @@
       "reported_status": "initializing",
       "monitor_ack": {
         "run_id": 40779074582,
-        "key": "0:0:0",
-        "observed_at": "2026-10-28T22:19:35.780Z"
+        "key": "0:1:0",
+        "observed_at": "2026-10-28T22:24:46.645Z"
       },
       "run_id": 40779101382,
       "run_url": "https://github.com/shigol/agent-toolkit/actions/runs/40779101382",
@@ -292,7 +292,7 @@
       "monitor_ack": {
         "run_id": 40779074582,
         "key": "0:0:0",
-        "observed_at": "2026-10-28T22:19:35.780Z"
+        "observed_at": "2026-10-28T22:24:46.645Z"
       },
       "comment_id": 6482126770,
       "last_notice_at": "2026-10-28T22:19:35.780Z",
