@@ -84,6 +84,39 @@ class ProjectSetupTests(unittest.TestCase):
         self.initialize()
         self.assertEqual(before, (self.project / 'CLAUDE.md').read_bytes())
 
+    def test_committed_fresh_clone_reads_cached_entries_without_initializing_submodule(self):
+        self.initialize()
+        self.git(self.project, 'add', '.')
+        self.git(self.project, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                 'commit', '--quiet', '-m', 'Reviewed integration')
+        clone = Path(self.tmp.name) / 'fresh-uninitialized'
+        subprocess.run(['git', 'clone', '--quiet', '--no-recurse-submodules', str(self.project), str(clone)], check=True)
+        self.assertFalse((clone / '.agent-toolkit/toolkit.lock.json').exists())
+        for entry in toolkit.lock()['skills']:
+            expected = (self.source / entry['path'] / 'SKILL.md').read_bytes()
+            for agent in ('.agents', '.claude'):
+                self.assertEqual((clone / agent / 'skills' / entry['name'] / 'SKILL.md').read_bytes(), expected)
+        check = (clone / '.github/workflows/agent-toolkit-check.yml').read_text()
+        before = check.index('verify-cache --project . --check')
+        setup = check.index('Verify fresh installation, repeat installation, and runtime')
+        after = check.rindex('verify-cache --project . --check')
+        self.assertLess(before, setup)
+        self.assertGreater(after, setup)
+        for path in ('.agent-skill-cache/**', '.agents/skills/**', '.claude/skills/**'):
+            self.assertEqual(check.count('- ' + path), 2)
+
+    def test_skill_conflict_preflight_does_not_clone_stage_or_create_generated_headers(self):
+        own = self.project / '.claude/skills/humanizer'
+        own.mkdir(parents=True)
+        (own / 'SKILL.md').write_text('Project procedure')
+        with self.assertRaisesRegex(RuntimeError, 'conflict'):
+            self.initialize()
+        self.assertFalse((self.project / '.agent-toolkit').exists())
+        self.assertFalse((self.project / 'AGENTS.md').exists())
+        self.assertFalse((self.project / '.agent-skill-cache').exists())
+        self.assertEqual(self.git(self.project, 'diff', '--cached', '--name-only'), '')
+        self.assertEqual((own / 'SKILL.md').read_text(), 'Project procedure')
+
     def test_ci_bridge_guard_skips_clean_projects_but_rejects_partial_and_redirected_installs(self):
         def run():
             return subprocess.run(['bash', '-c', self.bridge_guard()], cwd=self.project,

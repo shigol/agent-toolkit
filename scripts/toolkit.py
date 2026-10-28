@@ -56,8 +56,10 @@ def selection(project, data):
     if config.is_symlink():
         raise RuntimeError('Project selection must be a regular file')
     settings = json.loads(config.read_text())
-    if not isinstance(settings, dict) or settings.get('schema') != 1 or set(settings) - {'schema', 'groups', 'include', 'exclude', 'native_limit'}:
+    if not isinstance(settings, dict) or settings.get('schema') != 1 or set(settings) - {'schema', 'groups', 'include', 'exclude', 'native_limit', 'entry_cache'}:
         raise RuntimeError('Invalid project selection format')
+    if 'entry_cache' in settings and type(settings['entry_cache']) is not bool:
+        raise RuntimeError('entry_cache must be boolean')
     groups = settings.get('groups')
     include, exclude = settings.get('include', []), settings.get('exclude', [])
     for values in (groups, include, exclude):
@@ -81,7 +83,14 @@ def selection(project, data):
     return [s for s in selected if s['name'] in chosen]
 
 
-def destinations(project, agents, data):
+def cache_enabled(project):
+    path = project / '.agent-toolkit.json'
+    return path.exists() and json.loads(path.read_text()).get('entry_cache', False)
+
+
+def destinations(project, agents, data, cached=None):
+    if cached is None:
+        cached = cache_enabled(project)
     for agent in agents:
         folder = '.agents' if agent == 'codex' else '.claude'
         parent = project / folder / 'skills'
@@ -91,32 +100,70 @@ def destinations(project, agents, data):
             if ancestor.exists() and not ancestor.is_dir():
                 raise RuntimeError(f'Installation directory is a file: {ancestor}')
         for skill in data['skills']:
-            yield parent / skill['name'], ROOT / skill['path']
+            yield parent / skill['name'], (project / '.agent-skill-cache' / skill['path'] if cached else ROOT / skill['path'])
+
+
+def preflight_install(project, agents, data, selected, cached=None, root=None):
+    import entry_cache
+    root = ROOT if root is None else root
+    cached = cache_enabled(project) if cached is None else cached
+    plan = entry_cache.prepare(root, project, data, selected) if cached or os.path.lexists(project / entry_cache.DIRECTORY) else None
+    links = list(destinations(project, agents, {**data, 'skills': selected}, cached))
+    list(destinations(project, agents, data, cached))  # Validate parents even for an empty selection.
+    old_skills = plan['old']['skills'] if plan else {}
+    if plan:
+        remaining = plan['manifest']['skills'] if cached else {}
+        for agent in set(('codex', 'claude')) - set(agents):
+            folder = project / ('.agents' if agent == 'codex' else '.claude') / 'skills'
+            for name, item in old_skills.items():
+                link = folder / name
+                source = project / entry_cache.DIRECTORY / item['source'].removesuffix('/SKILL.md')
+                retained = remaining.get(name, {}).get('source') == item['source']
+                if not retained and link.is_symlink() and link.resolve() == source.resolve():
+                    raise RuntimeError('Removing/remapping cached entries requires installation for both agents')
+    known = {s['name']: s['path'] for s in data['skills']}
+    known.update({name: item['source'].removesuffix('/SKILL.md') for name, item in old_skills.items() if name not in known})
+    owned = {}
+    for name, source in known.items():
+        candidates = {root / source}
+        if cached:
+            candidates.add(project / entry_cache.DIRECTORY / source)
+        if name in old_skills:
+            candidates.add(project / entry_cache.DIRECTORY / old_skills[name]['source'].removesuffix('/SKILL.md'))
+        owned[name] = {p.resolve() for p in candidates}
+    for target, source in links:
+        if os.path.lexists(target) and (not target.is_symlink() or target.resolve() not in owned[target.name]):
+            raise RuntimeError(f'Existing skill conflict (left untouched): {target}')
+    targets = {p for p, _ in links}
+    stale = []
+    for agent in agents:
+        folder = project / ('.agents' if agent == 'codex' else '.claude') / 'skills'
+        for name in known:
+            target = folder / name
+            if target not in targets and target.is_symlink() and target.resolve() in owned[name]:
+                stale.append(target)
+    return links, stale, plan
 
 
 def install(project, agents):
     data = verify_sources()
     selected = selection(project, data)
-    links = list(destinations(project, agents, {**data, 'skills': selected}))
-    # Check all parent paths before touching any link, including an empty selection.
-    all_links = list(destinations(project, agents, data))
+    links, stale, cache = preflight_install(project, agents, data, selected)
     from routes import plan_updates, write_updates
     route_updates = plan_updates(ROOT, project, selected, agents, existing_only=True)
-    # Preflight every destination before making any changes.
-    for target, source in links:
-        if os.path.lexists(target):
-            if not target.is_symlink() or target.resolve() != source.resolve():
-                raise RuntimeError(f'Existing skill conflict (left untouched): {target}')
-    selected_targets = {target for target, _ in links}
-    # Deselect only exact toolkit links. Never remove local copies or foreign links.
-    stale = [target for target, source in all_links if target not in selected_targets
-             and target.is_symlink() and target.resolve() == source.resolve()]
+    import entry_cache
+    if cache_enabled(project):
+        entry_cache.apply(cache)
     for target in stale:
         target.unlink()
     for target, source in links:
         target.parent.mkdir(parents=True, exist_ok=True)
+        if target.is_symlink() and target.resolve() != source.resolve():
+            target.unlink()
         if not os.path.lexists(target):
             target.symlink_to(os.path.relpath(source, target.parent), target_is_directory=True)
+    if cache and not cache_enabled(project):
+        shutil.rmtree(project / entry_cache.DIRECTORY)
     write_updates(route_updates)
     verify(project, agents)
 
@@ -124,6 +171,9 @@ def install(project, agents):
 def verify(project, agents, check_routes=True):
     data = verify_sources()
     selected = selection(project, data)
+    if cache_enabled(project):
+        import entry_cache
+        entry_cache.verify(entry_cache.prepare(ROOT, project, data, selected))
     for target, source in destinations(project, agents, {**data, 'skills': selected}):
         if not target.is_symlink() or target.resolve() != source.resolve() or not (target / 'SKILL.md').is_file():
             raise RuntimeError(f'Skill missing or points to another version: {target}')
@@ -144,6 +194,7 @@ def status(project, agents):
     selected = selection(project, data)
     result = {'project': str(project), 'library_skills': len(data['skills']),
               'selected': [s['name'] for s in selected], 'agents': {},
+              'entry_cache': 'enabled; pinned references/runtime still require setup' if cache_enabled(project) else 'disabled',
               'library_access': 'Search the full catalogue with scripts/skills.py; native links are only a subset. Explicit exclusions still apply.',
               'session_discovery': 'Not verified. Reload the agent or read the selected SKILL.md directly.'}
     missing = False
@@ -271,15 +322,15 @@ def verify_runtime(project=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['install', 'verify', 'status', 'emit-routes', 'init-project', 'bootstrap-global', 'handoff-config', 'verify-sources', 'setup-runtime', 'verify-runtime'])
+    parser.add_argument('command', choices=['install', 'verify', 'status', 'emit-routes', 'init-project', 'bootstrap-global', 'handoff-config', 'verify-cache', 'verify-sources', 'setup-runtime', 'verify-runtime'])
     parser.add_argument('target', nargs='?', type=Path, help='Git repository root for init-project')
     parser.add_argument('--project', type=Path)
     parser.add_argument('--agents', nargs='+', choices=['codex', 'claude'], default=['codex', 'claude'])
-    parser.add_argument('--check', action='store_true', help='With emit-routes, fail on missing/stale blocks without changing files')
+    parser.add_argument('--check', action='store_true', help='Check routes without writing; with verify-cache also require committed clean outputs')
     parser.add_argument('--codex-home', type=Path, help='With bootstrap-global, defaults to CODEX_HOME or ~/.codex')
     args = parser.parse_args()
-    if args.check and args.command != 'emit-routes':
-        parser.error('--check is only valid with emit-routes')
+    if args.check and args.command not in ('emit-routes', 'verify-cache'):
+        parser.error('--check is only valid with emit-routes or verify-cache')
     if args.target and args.command != 'init-project':
         parser.error('A positional target is only valid with init-project')
     if args.codex_home and args.command != 'bootstrap-global':
@@ -299,6 +350,20 @@ def main():
         verify_sources()
         home = args.codex_home or Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex')))
         print(json.dumps(bootstrap_global(ROOT, home), indent=2))
+    elif args.command == 'verify-cache':
+        if not args.project:
+            parser.error('verify-cache requires --project')
+        data = verify_sources()
+        selected = selection(args.project, data)
+        if cache_enabled(args.project):
+            import entry_cache
+            entry_cache.verify(entry_cache.prepare(ROOT, args.project, data, selected), tracked=args.check)
+            verify(args.project, args.agents, check_routes=False)
+            print('PASS: readable entry cache matches the pinned sources' + (' and committed files' if args.check else ''))
+        elif os.path.lexists(args.project / '.agent-skill-cache'):
+            raise RuntimeError('Disabled readable cache must be removed through project setup')
+        else:
+            print('PASS: readable entry cache not enabled')
     elif args.command == 'handoff-config':
         from handoff import resolve
         print(json.dumps(resolve(ROOT, args.project or Path.cwd()), indent=2))

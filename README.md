@@ -86,7 +86,13 @@ python3 .agent-toolkit/scripts/toolkit.py setup-runtime --project .
 python3 .agent-toolkit/scripts/toolkit.py verify-runtime --project .
 ```
 
-Commit `.gitmodules`, the `.agent-toolkit` gitlink, and the generated `.agents/skills` and `.claude/skills` symlinks. The gitlink pins an exact toolkit commit. There is one skill copy inside the submodule, with relative links for both agents. An existing unrelated skill is never overwritten; conflicts stop the entire installation before links are created.
+Commit `.gitmodules`, the `.agent-toolkit` gitlink, and the generated `.agents/skills` and `.claude/skills` symlinks. The gitlink pins an exact toolkit commit. The pinned submodule is authoritative; both agents use relative links. Projects may also track generated readable entry copies as described below. An existing unrelated skill is never overwritten; conflicts stop the entire installation before links are created.
+
+For a new `init-project`, `entry_cache: true` is enabled in `.agent-toolkit.json`. Existing projects can opt in by adding that boolean and running setup. Commit the generated `.agent-skill-cache/` directory together with both agents’ links and the reviewed pin. A fresh clone can then read every selected SKILL.md and its license/notice files without initializing the submodule. This does not load all skill bodies into startup context or change `native_limit`.
+
+The cache mirrors exact pinned entry bytes; it is never another source to edit. Relative reference aliases and runtimes still require the pinned toolkit setup. Normal setup repairs missing or unchanged older generated files, refuses modified or foreign contents, and preserves project skills. After a reviewed source/selection update, run setup and commit cache and route changes in the same consumer PR. Identical entry/license bytes leave the cache manifest unchanged even when the toolkit pin advances.
+
+CI runs `python3 .agent-toolkit/scripts/toolkit.py verify-cache --project . --check` **before** setup and again afterward. It rejects stale, missing, modified, untracked or uncommitted cache outputs and incorrect agent links; automatic local repair cannot hide published drift. Keep these generated checks when customizing consumer workflows. With `entry_cache: false` (the legacy default for existing configs), links continue to point directly into the submodule.
 
 Generate the routing instructions after installation:
 

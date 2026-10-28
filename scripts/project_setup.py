@@ -85,7 +85,7 @@ def init_project(project, root, source=PUBLIC_SOURCE):
         regular(project, project / name)
     config = project / '.agent-toolkit.json'
     if not config.exists():
-        files[config.name] = (json.dumps({'schema': 1, 'groups': list(manifest['groups'])}, indent=2) + '\n').encode()
+        files[config.name] = (json.dumps({'schema': 1, 'groups': list(manifest['groups']), 'entry_cache': True}, indent=2) + '\n').encode()
     # Existing project selection is preserved, not broadened by initialization.
     import toolkit
     packages = {package for members in manifest['groups'].values() for package in members}
@@ -128,6 +128,9 @@ def init_project(project, root, source=PUBLIC_SOURCE):
         for folder in (project / agent, project / agent / 'skills'):
             if folder.is_symlink() or (folder.exists() and not folder.is_dir()):
                 raise ValueError('Refusing redirected skill directory: ' + str(folder))
+    # Pure ownership checks before cloning, creating headers, or staging integration.
+    toolkit.preflight_install(project, ['codex', 'claude'], manifest, selected,
+                              cached=toolkit.cache_enabled(project) if config.exists() else True, root=target if existing else root)
     parents = {parent for name in files for parent in (project / name).parents
                if parent != project and project in parent.parents}
     parents.update(project / agent / suffix for agent in ('.agents', '.claude') for suffix in ('', 'skills'))
@@ -140,6 +143,7 @@ def init_project(project, root, source=PUBLIC_SOURCE):
         raise ValueError('Existing submodule configuration has uncommitted changes')
     old_links = {(agent, entry['name']) for agent in ('.agents', '.claude') for entry in entries
                  if os.path.lexists(project / agent / 'skills' / entry['name'])}
+    cache_existed = (project / '.agent-skill-cache').exists()
     try:
         if not existing:
             options = []
@@ -175,6 +179,8 @@ def init_project(project, root, source=PUBLIC_SOURCE):
                     if (agent, entry['name']) not in old_links and link.is_symlink():
                         link.unlink()
             shutil.rmtree(target, ignore_errors=True)
+            if not cache_existed:
+                shutil.rmtree(project / '.agent-skill-cache', ignore_errors=True)
             shutil.rmtree(module_dir, ignore_errors=True)
             git(project, 'config', '--remove-section', 'submodule.agent-toolkit', check=False)
             git(project, 'update-index', '--force-remove', '--', '.gitmodules', '.agent-toolkit')
