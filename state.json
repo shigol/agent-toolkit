@@ -241,7 +241,7 @@
       "input_tokens": 0,
       "started_at": "2026-10-28T22:19:33.772Z",
       "expires_at": "2026-10-28T23:34:33.772Z",
-      "observed_at": "2026-10-28T22:22:08.899Z",
+      "observed_at": "2026-10-28T22:24:46.645Z",
       "monitor_epoch": 0,
       "start_due_at": "2026-10-28T22:24:33.772Z",
       "response_due_at": "2026-10-28T22:34:33.772Z",
@@ -298,7 +298,9 @@
       },
       "comment_id": 6482126770,
       "last_notice_at": "2026-10-28T22:19:35.780Z",
-      "deadline_notices": [],
+      "deadline_notices": [
+        "start"
+      ],
       "reported_status": "pending"
     }
   ],
