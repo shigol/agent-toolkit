@@ -142,7 +142,10 @@
           "path": "integrations/github/codex_result.cjs",
           "sha256": "4ba5d7e6da38ffa0410cd39e8541661e8ee45d97803c9132b4deec7fccae57d2"
         }
-      ]
+      ],
+      "comment_id": 6469432639,
+      "last_notice_at": "2026-10-28T12:50:34.053Z",
+      "reported_status": "paused"
     }
   ]
 }
