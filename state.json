@@ -132,19 +132,19 @@
           }
         ]
       },
-      "status": "pending",
+      "status": "dispatching",
       "step": 0,
-      "attempt": 0,
-      "total_runs": 0,
+      "attempt": 1,
+      "total_runs": 1,
       "input_tokens": 0,
       "started_at": "2026-10-28T21:44:56.126Z",
       "expires_at": "2026-10-28T22:59:56.126Z",
-      "observed_at": "2026-10-28T21:46:13.065Z",
+      "observed_at": "2026-10-28T21:56:21.288Z",
       "start_due_at": "2026-10-28T21:49:56.126Z",
       "response_due_at": "2026-10-28T21:59:56.126Z",
       "history": [],
       "commands": [],
-      "message": "Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.",
+      "message": "Dispatch reserved; waiting for a verified Actions run.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -182,7 +182,12 @@
       "comment_id": 6481446644,
       "last_notice_at": "2026-10-28T21:44:56.126Z",
       "deadline_notices": [],
-      "reported_status": "pending"
+      "reported_status": "pending",
+      "run_id": null,
+      "run_url": "",
+      "run_revision": null,
+      "request_id": "continuity-6481440564-0-1",
+      "dispatched_at": "2026-10-28T21:56:21.288Z"
     }
   ],
   "watchdog_enabled": true
