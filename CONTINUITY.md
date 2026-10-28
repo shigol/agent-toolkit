@@ -59,7 +59,7 @@ The legacy `/codex-run` command still submits one bounded worker and does not re
 
 ## Wake Claude when its work is needed
 
-When the user's existing authorization requires Claude's review or another owned task, resolve the nonsecret shared gateway with `python3 scripts/toolkit.py handoff-config` (or the equivalent pinned .agent-toolkit path). This reads HANDOFF.json from the shared library; `--project PATH` honors a project's .agent-handoff.json override or disabled flag. New project initialization and global-only fallback use that same library profile, without copying old thread state or credentials. Resolved metadata explicitly does not check credentials or live provider access.
+When the user's existing authorization requires Claude's review or another owned task, resolve the nonsecret shared gateway with `python3 scripts/toolkit.py handoff-config` (or the equivalent pinned .agent-toolkit path). This reads HANDOFF.json from the shared library and honors the current working directory's .agent-handoff.json override or disabled flag by default; `--project PATH` selects a different project explicitly. New project initialization and global-only fallback use that same library profile, without copying old thread state or credentials. Resolved metadata explicitly does not check credentials or live provider access.
 
 The agent writes a committed brief under the resolved gateway's brief directory and submits `/claude-wake docs/path.md` to its issue. Eugene does not relay between agents. This starts a fresh routine session which reads current project rules and shared coordination state; it does not resume an old thread. See the [routine setup and prompt](docs/CLAUDE-WAKE-SETUP.md).
 

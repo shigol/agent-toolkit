@@ -301,7 +301,7 @@ def main():
         print(json.dumps(bootstrap_global(ROOT, home), indent=2))
     elif args.command == 'handoff-config':
         from handoff import resolve
-        print(json.dumps(resolve(ROOT, args.project), indent=2))
+        print(json.dumps(resolve(ROOT, args.project or Path.cwd()), indent=2))
     elif args.command == 'verify-sources':
         data = verify_sources()
         print(f'PASS: {len(data["files"])} vendored files match toolkit.lock.json')
