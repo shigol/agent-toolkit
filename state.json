@@ -106,17 +106,17 @@
         "path": "docs/continuity-fixtures/exhaust-plan.json",
         "sha256": "78924bf4deae2bafcc83a6f46e6cf25181f43914d7d62a021229ba3bfbf45cd2"
       },
-      "status": "pending",
+      "status": "paused",
       "step": 0,
       "attempt": 0,
       "total_runs": 0,
       "input_tokens": 0,
       "started_at": "2026-10-28T12:38:27.339Z",
       "expires_at": "2026-10-28T13:08:27.339Z",
-      "observed_at": "2026-10-28T12:38:27.339Z",
+      "observed_at": "2026-10-28T12:50:34.053Z",
       "history": [],
       "commands": [],
-      "message": "Plan registered; no worker is running yet.",
+      "message": "The committed plan, brief or worker contract changed. Submit a newly reviewed plan to continue.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
