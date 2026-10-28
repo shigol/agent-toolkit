@@ -492,6 +492,11 @@ test('immutable intake events cannot share the coalescing reconcile concurrency 
     const content = fs.readFileSync(file, 'utf8');
     assert.match(content, /group:.*issue_comment.*github\.event\.comment\.id/);
     assert.match(content, /cancel-in-progress: false/);
+    assert.match(content, /pull-requests: write/, 'PR-backed inbox comments need pull-requests:write as well as issue comments');
+  }
+  for (const file of ['codex-continuity-watchdog.yml', '../workflows/codex-continuity-watchdog.yml', '../../.github/workflows/continuity-fixture.yml']
+    .map(name => path.join(__dirname, name)).filter(name => fs.existsSync(name))) {
+    assert.match(fs.readFileSync(file, 'utf8'), /pull-requests: write/, 'watchdog and fixture callbacks must also support PR inboxes');
   }
 });
 
