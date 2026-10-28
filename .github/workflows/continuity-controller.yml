@@ -1,0 +1,40 @@
+name: Continuity cloud acceptance
+on:
+  issue_comment:
+    types: [created]
+  workflow_run:
+    workflows: [Continuity harmless fixture]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+  issues: write
+  pull-requests: read
+concurrency:
+  group: ${{ github.event_name == 'issue_comment' && format('codex-continuity-intake-{0}', github.event.comment.id) || 'codex-continuity-controller' }}
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    if: >-
+      github.event_name != 'issue_comment' ||
+      startsWith(github.event.comment.body, '/codex-plan ') ||
+      startsWith(github.event.comment.body, '/codex-pause ') ||
+      startsWith(github.event.comment.body, '/codex-resume ') ||
+      startsWith(github.event.comment.body, '/codex-accept ') ||
+      startsWith(github.event.comment.body, '/codex-archive ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const {controller} = require('./.github/scripts/continuity_controller.cjs');
+            await controller({github, context, worker: 'continuity-fixture.yml', watchdog: false,
+              contractPaths: ['.github/workflows/continuity-fixture.yml', '.github/workflows/continuity-controller.yml',
+                'integrations/github/codex_continuity.cjs', 'integrations/github/codex_task_run.py',
+                'integrations/github/codex_task_patch.py', 'integrations/github/codex_result.cjs']});

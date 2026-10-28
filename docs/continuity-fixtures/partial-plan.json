@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "title": "Harmless cloud deadline and partial-work retention",
+  "limits": {"max_runs": 1, "max_minutes": 30, "max_input_tokens": 1},
+  "steps": [
+    {"id": "partial", "brief": "docs/continuity-fixtures/timeout-partial.md", "attempts": 1, "review": "required"}
+  ]
+}

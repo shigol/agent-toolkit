@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "title": "Harmless cloud retry exhaustion",
+  "limits": {"max_runs": 2, "max_minutes": 30, "max_input_tokens": 1},
+  "steps": [
+    {"id": "exhaust", "brief": "docs/continuity-fixtures/always-fail.md", "attempts": 2, "review": "none"}
+  ]
+}

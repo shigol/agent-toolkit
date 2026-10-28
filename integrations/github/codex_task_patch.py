@@ -38,6 +38,37 @@ def save(output):
         'meaning': 'Review transport only. Tests and skill claims must be checked in the trace; held paths are not pushed.'}, indent=2) + '\n')
 
 
+def snapshot(output):
+    """Read-only partial checkpoint: never stage files while the model is working."""
+    output.mkdir(parents=True, exist_ok=True)
+    tracked = {p for p in subprocess.check_output(['git', 'diff', '--name-only', '-z', 'HEAD']).decode().split('\0') if p}
+    untracked = {p for p in subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard', '-z']).decode().split('\0') if p}
+    selected, held = [], []
+    for name in sorted(tracked | untracked):
+        candidate = Path(name)
+        (selected if allowed(name) and not candidate.is_symlink() and
+         (not candidate.exists() or candidate.is_file()) else held).append(name)
+    pieces = []
+    old = [name for name in selected if name in tracked]
+    if old:
+        pieces.append(subprocess.check_output(['git', 'diff', '--binary', 'HEAD', '--', *old]))
+    for name in selected:
+        if name not in untracked:
+            continue
+        result = subprocess.run(['git', 'diff', '--no-index', '--binary', '--', '/dev/null', name], capture_output=True)
+        if result.returncode not in (0, 1):
+            raise ValueError('Could not capture an untracked checkpoint file')
+        pieces.append(result.stdout)
+    patch = b''.join(pieces)
+    if len(patch) > 5_000_000:
+        raise ValueError('Review checkpoint exceeds5MB')
+    temporary = output / 'partial.patch.tmp'
+    temporary.write_bytes(patch)
+    temporary.replace(output / 'partial.patch')
+    (output / 'partial-report.json').write_text(json.dumps({'saved': selected, 'held': held,
+        'meaning': 'Partial read-only checkpoint; not an accepted result or automatic merge.'}) + '\n')
+
+
 def apply(patch):
     if patch.stat().st_size > 5_000_000:
         raise ValueError('Review patch exceeds 5 MB')
@@ -54,5 +85,7 @@ def apply(patch):
 if __name__ == '__main__':
     if sys.argv[1] == 'apply':
         apply(Path(sys.argv[2]))
+    elif sys.argv[1] == 'snapshot':
+        snapshot(Path(sys.argv[2]))
     else:
         save(Path(sys.argv[1]))
