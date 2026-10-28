@@ -132,7 +132,7 @@
       "input_tokens": 0,
       "started_at": "2026-10-28T13:07:47.029Z",
       "expires_at": "2026-10-28T13:37:47.029Z",
-      "observed_at": "2026-10-28T13:07:58.484Z",
+      "observed_at": "2026-10-28T13:08:15.132Z",
       "history": [],
       "commands": [],
       "message": "Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.",
