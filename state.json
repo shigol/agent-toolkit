@@ -40,8 +40,27 @@
       "input_tokens": 0,
       "started_at": "2026-10-28T12:51:40.034Z",
       "expires_at": "2026-10-28T13:21:40.034Z",
-      "observed_at": "2026-10-28T12:51:54.424Z",
-      "history": [],
+      "observed_at": "2026-10-28T13:06:48.206Z",
+      "history": [
+        {
+          "run_id": 40691336981,
+          "revision": "b02abcbfb2daa06062e1ea92989cab4af1542cc7",
+          "request_id": "continuity-6469449679-0-1",
+          "result": {
+            "run_id": 40691336981,
+            "request_id": "continuity-6469449679-0-1",
+            "worker": "failure",
+            "save": "success",
+            "has_patch": false,
+            "held_count": 0,
+            "input_tokens": 0,
+            "usage_known": true,
+            "branch": "",
+            "checkpoint_status": "failed"
+          },
+          "recorded_at": "2026-10-28T13:06:48.206Z"
+        }
+      ],
       "commands": [
         "6469762873"
       ],
@@ -79,7 +98,8 @@
       "dispatched_at": "2026-10-28T12:51:40.034Z",
       "comment_id": 6469455529,
       "last_notice_at": "2026-10-28T12:51:54.424Z",
-      "reported_status": "paused"
+      "reported_status": "paused",
+      "usage_unknown": false
     },
     {
       "schema": 1,
