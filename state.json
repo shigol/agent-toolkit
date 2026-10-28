@@ -114,7 +114,7 @@
       "observed_at": "2026-10-28T12:51:45.343Z",
       "history": [],
       "commands": [],
-      "message": "Plan registered; no worker is running yet.",
+      "message": "Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
@@ -140,7 +140,10 @@
           "path": "integrations/github/codex_result.cjs",
           "sha256": "4ba5d7e6da38ffa0410cd39e8541661e8ee45d97803c9132b4deec7fccae57d2"
         }
-      ]
+      ],
+      "comment_id": 6469456227,
+      "last_notice_at": "2026-10-28T12:51:45.343Z",
+      "reported_status": "pending"
     }
   ]
 }
