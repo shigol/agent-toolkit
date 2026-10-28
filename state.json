@@ -126,17 +126,17 @@
         "path": "docs/continuity-fixtures/exhaust-plan.json",
         "sha256": "78924bf4deae2bafcc83a6f46e6cf25181f43914d7d62a021229ba3bfbf45cd2"
       },
-      "status": "pending",
+      "status": "paused",
       "step": 0,
       "attempt": 0,
       "total_runs": 0,
       "input_tokens": 0,
       "started_at": "2026-10-28T12:51:45.343Z",
       "expires_at": "2026-10-28T13:21:45.343Z",
-      "observed_at": "2026-10-28T12:51:54.424Z",
+      "observed_at": "2026-10-28T13:06:48.206Z",
       "history": [],
       "commands": [],
-      "message": "Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.",
+      "message": "The committed plan, brief or worker contract changed. Submit a newly reviewed plan to continue.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
