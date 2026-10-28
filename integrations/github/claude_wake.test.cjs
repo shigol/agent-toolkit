@@ -11,6 +11,23 @@ const NOW = 1793192400000;
 const accepted = () => new Response(JSON.stringify({type: 'routine_fire', claude_code_session_id: 'session_fixture',
   claude_code_session_url: 'https://claude.ai/code/session_fixture'}), {status: 200});
 
+test('source and installed workflows retain trusted checkout and durable intake boundaries', () => {
+  const nearby = path.join(__dirname, 'claude-wake.yml');
+  const file = fs.existsSync(nearby) ? nearby : path.join(__dirname, '../workflows/claude-wake.yml');
+  const source = fs.readFileSync(file, 'utf8');
+  function check(text) {
+    assert.equal((text.match(/uses: actions\/checkout@/g) || []).length, 1);
+    assert.match(text, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}\n\s+persist-credentials: false/);
+    assert.match(text, /group: claude-wake-intake-\$\{\{ github\.event\.comment\.id \}\}\n\s+cancel-in-progress: false/);
+    assert.ok(!text.includes('pull_request.head'));
+    assert.ok(text.includes("require('./.github/scripts/claude_wake.cjs')"));
+  }
+  check(source);
+  for (const changed of [source.replace('github.event.repository.default_branch', 'github.event.pull_request.head.sha'),
+    source.replace('persist-credentials: false', 'persist-credentials: true'),
+    source.replace('claude-wake-intake-${{ github.event.comment.id }}', 'claude-wake-intake')]) assert.throws(() => check(changed));
+});
+
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-wake-test-'));
   t.after(() => fs.rmSync(root, {recursive: true, force: true}));

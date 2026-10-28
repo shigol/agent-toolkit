@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import re
+import textwrap
 from unittest.mock import patch
 
 from test_toolkit import toolkit
@@ -51,6 +53,14 @@ class ProjectSetupTests(unittest.TestCase):
     def initialize(self):
         return project_setup.init_project(self.project, self.source, source=str(self.source))
 
+    @staticmethod
+    def bridge_guard():
+        text = (ROOT / 'integrations/github/agent-toolkit-check.yml').read_text()
+        match = re.search(r'      - name: Verify installed Claude wake bridge\n        run: \|\n((?:          [^\n]*\n)+)', text)
+        if not match:
+            raise AssertionError('Missing installed bridge CI guard')
+        return textwrap.dedent(match[1])
+
     def test_fresh_repository_both_agents_exact_pin_and_repeat_setup(self):
         (self.project / 'AGENTS.md').write_text('Keep my project instructions.\n')
         result = self.initialize()
@@ -68,11 +78,34 @@ class ProjectSetupTests(unittest.TestCase):
         subprocess.run(['node', str(self.project / '.github/scripts/codex_continuity.test.cjs')],
                        cwd=self.project, check=True, stdout=subprocess.DEVNULL)
         self.assertTrue((self.project / '.github/workflows/claude-wake.yml').is_file())
-        subprocess.run(['node', str(self.project / '.github/scripts/claude_wake.test.cjs')],
+        subprocess.run(['bash', '-c', self.bridge_guard()],
                        cwd=self.project, check=True, stdout=subprocess.DEVNULL)
         before = (self.project / 'CLAUDE.md').read_bytes()
         self.initialize()
         self.assertEqual(before, (self.project / 'CLAUDE.md').read_bytes())
+
+    def test_ci_bridge_guard_skips_clean_projects_but_rejects_partial_and_redirected_installs(self):
+        def run():
+            return subprocess.run(['bash', '-c', self.bridge_guard()], cwd=self.project,
+                                  capture_output=True, text=True)
+        self.assertEqual(run().returncode, 0)
+        scripts = self.project / '.github/scripts'
+        scripts.mkdir(parents=True)
+        (scripts / 'claude_wake.cjs').write_text('// fixture helper\n')
+        self.assertNotEqual(run().returncode, 0)
+        workflow = self.project / '.github/workflows/claude-wake.yml'
+        workflow.parent.mkdir()
+        workflow.write_text('name: Fixture\n')
+        (scripts / 'claude_wake.test.cjs').write_text('require("node:fs").writeFileSync("bridge-test-ran", "yes");\n')
+        self.assertEqual(run().returncode, 0)
+        self.assertTrue((self.project / 'bridge-test-ran').is_file())
+        workflow.unlink()
+        workflow.symlink_to('missing.yml')
+        self.assertNotEqual(run().returncode, 0)
+        text = (ROOT / 'integrations/github/agent-toolkit-check.yml').read_text()
+        for value in ('.agent-handoff.json', '.github/scripts/claude_*', '.github/workflows/claude-wake.yml'):
+            self.assertIn('      - ' + value, text)
+        self.assertIn('            .github/workflows\n', text)
 
     def test_existing_selection_is_preserved(self):
         config = {'schema': 1, 'groups': ['writing'], 'native_limit': 1}
