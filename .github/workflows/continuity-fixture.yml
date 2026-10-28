@@ -26,7 +26,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     outputs:
       worker: ${{ steps.execute.outcome }}
       execution: ${{ steps.execute.outcome }}
@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
       - name: Deliberately delay the fixed no-model execution step
         if: inputs.brief == 'docs/continuity-fixtures/slow-start.md'
-        run: sleep 360
+        run: sleep 660
       - name: Execute fixed harmless probe
         id: execute
         continue-on-error: true
