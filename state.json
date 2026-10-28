@@ -161,14 +161,14 @@
         "path": "docs/continuity-fixtures/exhaust-plan.json",
         "sha256": "78924bf4deae2bafcc83a6f46e6cf25181f43914d7d62a021229ba3bfbf45cd2"
       },
-      "status": "queued",
+      "status": "blocked",
       "step": 0,
       "attempt": 2,
       "total_runs": 2,
       "input_tokens": 0,
       "started_at": "2026-10-28T13:07:47.029Z",
       "expires_at": "2026-10-28T13:37:47.029Z",
-      "observed_at": "2026-10-28T13:10:13.983Z",
+      "observed_at": "2026-10-28T13:10:30.704Z",
       "history": [
         {
           "run_id": 40693876998,
@@ -187,10 +187,28 @@
             "checkpoint_status": "failed"
           },
           "recorded_at": "2026-10-28T13:09:51.356Z"
+        },
+        {
+          "run_id": 40693956457,
+          "revision": "e8cd74b8a98722cdab6aef1e61e04d9640651340",
+          "request_id": "continuity-6469784686-0-2",
+          "result": {
+            "run_id": 40693956457,
+            "request_id": "continuity-6469784686-0-2",
+            "worker": "failure",
+            "save": "success",
+            "has_patch": false,
+            "held_count": 0,
+            "input_tokens": 0,
+            "usage_known": true,
+            "branch": "",
+            "checkpoint_status": "failed"
+          },
+          "recorded_at": "2026-10-28T13:10:30.704Z"
         }
       ],
       "commands": [],
-      "message": "Actions run verified queued; execution has not started.",
+      "message": "Attempt/run/observed-usage budget exhausted; no more automatic retries.",
       "contracts": [
         {
           "path": ".github/workflows/continuity-fixture.yml",
