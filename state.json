@@ -131,8 +131,8 @@
       "request_id": "continuity-6469782853-1-1",
       "dispatched_at": "2026-10-28T13:08:48.821Z",
       "comment_id": 6469789552,
-      "last_notice_at": "2026-10-28T13:07:47.029Z",
-      "reported_status": "dispatching",
+      "last_notice_at": "2026-10-28T13:09:19.103Z",
+      "reported_status": "review",
       "usage_unknown": false,
       "branch": ""
     },
