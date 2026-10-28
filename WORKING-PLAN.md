@@ -64,11 +64,11 @@ The current Codex value batch used about 1.10M aggregate input tokens, including
 
 ## Next concrete work
 
-1. Record the proved app cache reuse and selected-source/review-branch transport. Close the isolated transport PR unmerged. Complete rendered execution separately; a saved report and source read do not prove visual QA.
-2. Deliver the explicit work-reporting prose trigger to both consumers, within their existing context budgets. Claude reruns the three affected hosted cases; Codex runs the independently authored replay smoke when supplied, grading actual reads.
+1. Record the proved app cache reuse and selected-source/review-branch transport. The isolated transport PR was closed unmerged. Original replay candidates passed sixteen trusted local rendered states; retain synthetic-catalogue, shared-host and real-device limits.
+2. The explicit work-reporting prose trigger is deployed in both consumers within their existing context budgets. All five independent Codex cases executed:11 required full reads, original strict source score2/5 due extra bodies. Preserve labels and distinguish project/error-phase reads from prose over-selection. Deploy and inspect the audit/technical-verification clarification; Claude still owns three affected hosted reruns.
 3. Both agents have committed blind judgements. The Codex map is revealed; obtain Claude's precommitted-hash map and record both outcomes, including ties and marginal preferences. Do not extrapolate a large benefit from these three task families.
 4. Reconcile the remaining host/scale/server limits and current evidence. Mark only achieved criteria complete; keep an unavailable peer/host result open rather than simulating it.
 
 For ongoing work, send Eugene an update every 30 minutes while actively executing: done, remaining and estimate. Do not imply an idle-chat scheduler exists. If external peer results are unavailable, complete independent work, record the exact gap and keep the issue open.
 
-A workstation may be closed while a submitted Actions job runs. It does not make this chat a persistent worker. Before claiming unattended continuation, retain an actual run ID and the committed brief/checkpoint; distinguish a bounded job from a coordinator that starts subsequent tasks. No automatic idle-chat updates or end-to-end overnight continuation are currently configured.
+A workstation may be closed while a submitted Actions job runs. It does not make this chat a persistent worker. Before claiming unattended continuation, retain an actual run ID and the committed brief/checkpoint; distinguish a bounded job from a coordinator that starts subsequent tasks. The durable opt-in controller and active-only watchdog are implemented; existing-consumer adoption and live multi-step/recovery acceptance remain separate. They do not monitor arbitrary idle chats or create account-wide updates.
