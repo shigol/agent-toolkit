@@ -15,6 +15,19 @@ on:
       - .github/workflows/claude-wake.yml
       - .github/scripts/*skill_probe*
       - .github/workflows/codex-build.yml
+      - .github/workflows/codex-task.yml
+      - .github/workflows/codex-recover.yml
+      - .github/scripts/codex_recover.cjs
+      - .github/scripts/codex_task_patch.py
+      - .github/scripts/codex_request.cjs
+      - .github/scripts/codex_request.test.cjs
+      - .github/scripts/codex_continuity.cjs
+      - .github/scripts/codex_continuity.test.cjs
+      - .github/scripts/codex_result.cjs
+      - .github/scripts/codex_task_run.py
+      - .github/workflows/codex-request.yml
+      - .github/workflows/codex-continuity.yml
+      - .github/workflows/codex-continuity-watchdog.yml
       - .github/workflows/agent-toolkit-*.yml
       - scripts/setup-agent-toolkit.sh
       - tools/setup-agent-toolkit.sh
@@ -33,6 +46,19 @@ on:
       - .github/workflows/claude-wake.yml
       - .github/scripts/*skill_probe*
       - .github/workflows/codex-build.yml
+      - .github/workflows/codex-task.yml
+      - .github/workflows/codex-recover.yml
+      - .github/scripts/codex_recover.cjs
+      - .github/scripts/codex_task_patch.py
+      - .github/scripts/codex_request.cjs
+      - .github/scripts/codex_request.test.cjs
+      - .github/scripts/codex_continuity.cjs
+      - .github/scripts/codex_continuity.test.cjs
+      - .github/scripts/codex_result.cjs
+      - .github/scripts/codex_task_run.py
+      - .github/workflows/codex-request.yml
+      - .github/workflows/codex-continuity.yml
+      - .github/workflows/codex-continuity-watchdog.yml
       - .github/workflows/agent-toolkit-*.yml
       - scripts/setup-agent-toolkit.sh
       - tools/setup-agent-toolkit.sh
@@ -91,6 +117,15 @@ jobs:
           if [ -f .agent-toolkit/HANDOFF.json ] || [ -e .agent-handoff.json ] || [ -L .agent-handoff.json ]; then
             python3 .agent-toolkit/scripts/toolkit.py handoff-config --project .
           fi
+      - name: Verify managed collaboration helpers before executing them
+        run: |
+          for name in codex_request.cjs codex_request.test.cjs codex_continuity.cjs codex_continuity.test.cjs codex_task_run.py codex_task_patch.py codex_result.cjs codex_recover.cjs; do
+            installed=".github/scripts/$name"
+            pinned=".agent-toolkit/integrations/github/$name"
+            test -f "$installed" && test ! -L "$installed" && test -f "$pinned" && cmp -s "$installed" "$pinned" || { echo '::error::Managed collaboration helper differs from the reviewed pin'; exit 1; }
+          done
+          node .github/scripts/codex_request.test.cjs
+          node .github/scripts/codex_continuity.test.cjs
       - name: Check whether a bot update can merge unattended
         continue-on-error: true
         if: github.event_name == 'pull_request'

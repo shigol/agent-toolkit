@@ -78,3 +78,65 @@ class TaskTransportTests(unittest.TestCase):
             self.assertEqual(report['saved'], ['README.md', 'docs/new.md'])
             self.assertEqual(report['held'], ['auth.json'])
             self.assertNotIn(b'not a real credential', (Path(output) / 'changes.patch').read_bytes())
+
+    def test_rejected_helper_patch_cannot_mutate_trusted_status_code_or_index(self):
+        helper = Path('.github/scripts/codex_result.cjs')
+        helper.parent.mkdir(parents=True)
+        helper.write_text('module.exports = {trusted: true};\n')
+        self.git('add', '.'); self.git('commit', '-qm', 'Trusted receiver')
+        original = helper.read_bytes()
+        helper.write_text('throw Error("candidate code must never execute");\n')
+        Path('docs').mkdir(); Path('docs/allowed.md').write_text('Allowed alongside held helper\n')
+        self.git('add', '.')
+        patch = self.root / 'candidate.patch'
+        patch.write_bytes(self.git('diff', '--cached', '--binary'))
+        self.git('reset', '--hard', '-q', 'HEAD')
+        with self.assertRaisesRegex(ValueError, 'held path'):
+            PATCH.apply(patch)
+        self.assertEqual(helper.read_bytes(), original)
+        self.assertFalse(Path('docs/allowed.md').exists())
+        self.assertEqual(self.git('diff', '--cached', '--binary'), b'')
+
+    def test_transport_retries_existing_artifact_without_hooks_or_duplicate_commits(self):
+        bare = self.root.parent / (self.root.name + '-remote.git')
+        self.git('init', '--bare', '-q', str(bare))
+        self.addCleanup(lambda: __import__('shutil').rmtree(bare, ignore_errors=True))
+        self.git('remote', 'add', 'origin', str(bare))
+        baseline = self.git('rev-parse', 'HEAD').strip().decode()
+        hook = Path('.git/hooks/pre-push')
+        hook.write_text('#!/bin/sh\ntouch HOOK-RAN\nexit 9\n'); hook.chmod(0o755)
+        commit_hook = Path('.git/hooks/pre-commit')
+        commit_hook.write_text('#!/bin/sh\ntouch HOOK-RAN\nexit 9\n'); commit_hook.chmod(0o755)
+        patch = self.patch_for('docs/recovered.md', 'Already-completed worker output\n')
+        branch = PATCH.save_branch(patch, 'codex/task-123', '123')
+        first = self.git('ls-remote', 'origin', 'refs/heads/' + branch)
+        self.assertFalse(Path('HOOK-RAN').exists())
+        self.git('checkout', '--detach', '-q', baseline)
+        self.assertEqual(PATCH.save_branch(patch, branch, '123'), branch)
+        self.assertEqual(self.git('ls-remote', 'origin', 'refs/heads/' + branch), first)
+        self.assertFalse(Path('HOOK-RAN').exists())
+        # Recovery never force-replaces a separately edited review branch.
+        self.git('reset', '--hard', '-q', baseline)
+        other = self.patch_for('docs/different.md', 'A distinct candidate\n')
+        with self.assertRaisesRegex(ValueError, 'Existing review branch differs'):
+            PATCH.save_branch(other, branch, '123')
+        self.assertEqual(self.git('ls-remote', 'origin', 'refs/heads/' + branch), first)
+
+    def test_symlink_rejection_does_not_create_working_tree_link(self):
+        patch = self.patch_for('docs/link.md', '/etc/hosts', symlink=True)
+        with self.assertRaisesRegex(ValueError, 'Symlink'):
+            PATCH.apply(patch)
+        self.assertFalse(os.path.lexists('docs/link.md'))
+        self.assertEqual(self.git('diff', '--cached', '--name-only'), b'')
+
+    def test_sparse_receiver_preserves_excluded_data_when_applying_allowed_patch(self):
+        omitted = Path('job-market/db/fixture.json')
+        omitted.parent.mkdir(parents=True); omitted.write_text('Large unrelated tracked data fixture\n')
+        self.git('add', '.'); self.git('commit', '-qm', 'Unrelated data')
+        patch = self.patch_for('docs/recovered.md', 'Bounded allowed source change\n')
+        self.git('sparse-checkout', 'set', 'docs')
+        self.assertFalse(omitted.exists())
+        PATCH.apply(patch)
+        self.assertEqual(Path('docs/recovered.md').read_text(), 'Bounded allowed source change\n')
+        self.assertEqual(self.git('diff', '--cached', '--name-only').strip(), b'docs/recovered.md')
+        self.assertIn(b'Large unrelated tracked data fixture', self.git('show', ':job-market/db/fixture.json'))

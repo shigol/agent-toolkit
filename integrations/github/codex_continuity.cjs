@@ -2,10 +2,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const {command: briefCommand} = require('./codex_request.cjs');
 
 const STATE_REF = 'codex/continuity-state';
 const STATE_FILE = 'state.json';
-const ACTIVE = new Set(['pending', 'dispatching', 'queued', 'running', 'retry', 'unconfirmed']);
+const ACTIVE = new Set(['pending', 'dispatching', 'queued', 'initializing', 'running', 'retry', 'unconfirmed']);
 const TERMINAL = new Set(['complete', 'paused', 'blocked']);
 const MAX_STATE_BYTES = 262144;
 const hash = data => crypto.createHash('sha256').update(data).digest('hex');
@@ -75,7 +76,21 @@ function loadPlan(root, file) {
   return {title: plan.title, limits, steps, path: file, sha256: hash(raw)};
 }
 
+// An ordinary task gets the same durable queue, lease and watchdog as a multi-step plan.
+// One authorized inference only; delivery repair must not spend a second model call.
+function loadBriefPlan(root, file) {
+  const digest = hash(regular(root, file, 'md'));
+  return {kind: 'brief', title: `Committed brief: ${file}`, path: file, sha256: digest,
+    limits: {max_runs: 1, max_minutes: 75, max_input_tokens: 1000000},
+    steps: [{id: 'task', brief: file, attempts: 1, review: 'required', sha256: digest}]};
+}
+
 function parse(body) {
+  if (String(body).trim().startsWith('/codex-run ')) {
+    const request = briefCommand(body);
+    if (request.mode !== 'task') throw Error('Explicit acceptance modes use the separate acceptance dispatcher');
+    return {command: 'run', value: request.brief};
+  }
   const match = /^\/codex-(plan|pause|resume|accept|archive) ([A-Za-z0-9_./-]+)$/.exec(String(body).trim());
   if (!match) throw Error('Use one line: /codex-plan docs/plan.json, or /codex-pause|resume|accept|archive REQUEST_ID');
   if (match[1] !== 'plan' && !/^\d+$/.test(match[2])) throw Error('Request ID must be numeric');
@@ -85,7 +100,8 @@ function parse(body) {
 function createRecord(plan, request, issue, author, revision, now) {
   return {schema: 1, id: request, issue, author, revision, plan, status: 'pending', step: 0, attempt: 0,
     total_runs: 0, input_tokens: 0, started_at: iso(now), expires_at: iso(now + plan.limits.max_minutes * 60000),
-    observed_at: iso(now), history: [], commands: [], message: 'Plan registered; no worker is running yet.'};
+    observed_at: iso(now), start_due_at: iso(now + 5 * 60000), response_due_at: iso(now + 15 * 60000),
+    history: [], commands: [], message: 'Plan registered; no worker is running yet.'};
 }
 
 function receipt(body, request, runId) {
@@ -150,10 +166,14 @@ function advance(record, observed, now) {
   }
   next.run_id = run.id; next.run_url = run.html_url;
   next.run_revision = run.head_sha || null;
+  if (observed.execution_started) next.worker_started_at ||= iso(now);
   if (run.status !== 'completed') {
-    next.status = run.status === 'queued' || run.status === 'waiting' ? 'queued' : 'running';
-    next.message = next.status === 'queued' ? 'Actions run verified queued; execution has not started.' : 'Actions run verified active; this is not a completion claim.';
-    if (run.run_started_at && now - Date.parse(run.run_started_at) > 50 * 60000) {
+    next.status = run.status === 'queued' || run.status === 'waiting' ? 'queued'
+      : observed.execution_started ? 'running' : 'initializing';
+    next.message = next.status === 'queued' ? 'Actions run verified queued; execution has not started.'
+      : next.status === 'initializing' ? 'Workflow is active, but the actual execution step has not started.'
+        : 'Actual execution step verified started; this is not a completion claim.';
+    if (run.run_started_at && now - Date.parse(run.run_started_at) > 65 * 60000) {
       effects.push({type: 'cancel', id: run.id});
       next.message = 'Active run exceeded the worker deadline; cancellation requested. Waiting for its saved result.';
     }
@@ -172,6 +192,13 @@ function advance(record, observed, now) {
   next.input_tokens += result.input_tokens;
   next.usage_unknown ||= !result.usage_known;
   next.branch = result.branch || '';
+  if (result.checkpoint_status === 'execution_complete'
+      && (result.save !== 'success' || result.worker !== 'success' || run.conclusion !== 'success')) {
+    next.status = 'blocked';
+    next.delivery_run = run.id;
+    next.message = 'Inference completed, but delivery or a following validation failed. Inspect/recover its existing artifact with the result-recovery workflow; never rerun inference for transport repair.';
+    return {record: next, effects};
+  }
   if (result.has_patch || result.held_count) {
     next.status = 'review'; next.message = 'Saved work needs independent review. A successful worker is not accepted project completion.';
     return {record: next, effects};
@@ -280,6 +307,21 @@ async function report(github, repo, record) {
   if (!first && (changed || due)) await github.rest.issues.createComment({...repo, issue_number: record.issue,
     body: `Plan ${record.id} update: ${record.status}. ${record.message}\n${record.run_url || 'No Actions run is yet verified.'}\nCheckpoint/status: ${record.comment_id}. No automatic merge or deployment.`});
   if (first || changed || due) record.last_notice_at = record.observed_at;
+  // Deadlines make silence observable without creating another model just to poll.
+  const alerts = [];
+  if (ACTIVE.has(record.status)) {
+    if (!record.worker_started_at && Date.parse(record.observed_at) >= Date.parse(record.start_due_at)) alerts.push('start');
+    if (Date.parse(record.observed_at) >= Date.parse(record.response_due_at)) alerts.push('response');
+  }
+  record.deadline_notices ||= [];
+  for (const kind of alerts) {
+    if (record.deadline_notices.includes(kind)) continue;
+    await github.rest.issues.createComment({...repo, issue_number: record.issue,
+      body: `<!-- codex-deadline:${record.id}:${kind} -->\nPlan ${record.id}: ${kind} target overdue. ${record.message}\n` +
+        `${record.run_url || 'No child run verified.'}\nCoordinator must inspect the saved state and pursue a supported recovery; do not duplicate an ambiguous or active worker. ` +
+        'These targets are observed by the cloud watchdog; queue/cron latency is not an exact-time guarantee.'});
+    record.deadline_notices.push(kind);
+  }
   record.reported_status = record.status;
 }
 
@@ -294,6 +336,7 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
   contractPaths ||= [`.github/workflows/${worker}`, '.github/workflows/codex-continuity.yml',
     '.github/workflows/codex-continuity-watchdog.yml', '.github/scripts/codex_continuity.cjs',
     '.github/scripts/codex_task_run.py', '.github/scripts/codex_task_patch.py', '.github/scripts/codex_result.cjs',
+    '.github/scripts/codex_request.cjs',
     ...relatedWorkers.map(name => `.github/workflows/${name}`)];
   let armed = false;
   async function enableWatchdog() {
@@ -303,11 +346,26 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
       state.watchdog_enabled = true; armed = true;
     }
   }
+  let intake = null;
   if (context.eventName === 'issue_comment') {
-    const command = parse(event.comment.body);
     if (!await writer(github, repo, event.comment.user.login)) throw Error('Only repository writers can manage unattended plans');
-    if (command.command === 'plan') {
-      const id = String(event.comment.id);
+    intake = {command: parse(event.comment.body), id: String(event.comment.id),
+      issue: event.issue.number, author: event.comment.user.login};
+  } else if (context.eventName === 'workflow_dispatch' && event.inputs?.brief) {
+    const author = context.actor || event.sender?.login;
+    if (!author || !await writer(github, repo, author)) throw Error('Only repository writers can manage unattended plans');
+    const id = String(event.inputs.request_id || ''), issue = Number(event.inputs.request_issue);
+    if (!/^[1-9][0-9]{0,19}$/.test(id) || !Number.isSafeInteger(Number(id))
+        || !Number.isSafeInteger(issue) || issue < 1) throw Error('A stable numeric request ID and request issue are required');
+    intake = {command: {command: 'run', value: event.inputs.brief}, id, issue, author};
+  }
+  if (intake) {
+    const {command} = intake;
+    if (command.command === 'plan' || command.command === 'run') {
+      const id = intake.id;
+      const prior = state.records.find(x => x.id === id);
+      if (prior && (prior.issue !== intake.issue || prior.plan.path !== command.value
+          || (prior.plan.kind === 'brief') !== (command.command === 'run'))) throw Error('Request ID already belongs to a different task or issue');
       if (!state.records.some(x => x.id === id) && !(store.archived && await store.archived(id))) {
         if (state.records.filter(x => !TERMINAL.has(x.status)).length >= 10) throw Error('Continuity registry has ten unfinished plans; review them before adding more');
         if (state.records.length >= 20) {
@@ -316,9 +374,9 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
           store.archive(state.records[archived]); state.records.splice(archived, 1);
           await store.save(state);
         }
-        const plan = loadPlan(root, command.value);
+        const plan = command.command === 'run' ? loadBriefPlan(root, command.value) : loadPlan(root, command.value);
         await enableWatchdog();
-        const record = createRecord(plan, id, event.issue.number, event.comment.user.login, process.env.GITHUB_SHA || '', now);
+        const record = createRecord(plan, id, intake.issue, intake.author, process.env.GITHUB_SHA || '', now);
         record.contracts = contractHashes(root, contractPaths);
         state.records.push(record);
         await store.save(state);
@@ -384,7 +442,7 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
   }
   async function busy(record) {
     const reserved = state.records.some(other => other.id !== record.id
-      && ['dispatching', 'queued', 'running', 'unconfirmed'].includes(other.status));
+      && ['dispatching', 'queued', 'initializing', 'running', 'unconfirmed'].includes(other.status));
     return reserved || (await observedRuns()).some(item => item.status !== 'completed'
       && item.head_branch === event.repository.default_branch
       && item.head_repository?.full_name === `${repo.owner}/${repo.repo}`);
@@ -394,11 +452,11 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
     if (!ACTIVE.has(record.status) && record.status !== 'review' && !(record.status === 'paused' && record.request_id)) continue;
     let changed = false;
     try {
-      changed = hash(regular(root, record.plan.path, 'json')) !== record.plan.sha256
+      changed = hash(regular(root, record.plan.path, record.plan.kind === 'brief' ? 'md' : 'json')) !== record.plan.sha256
         || record.plan.steps.some(step => hash(regular(root, step.brief, 'md')) !== step.sha256)
         || JSON.stringify(contractHashes(root, record.contracts.map(item => item.path))) !== JSON.stringify(record.contracts);
     } catch { changed = true; }
-    let run = null, result = null;
+    let run = null, result = null, executionStarted = false;
     const stoppedByBudget = now >= Date.parse(record.expires_at) || record.usage_unknown
       || record.total_runs >= record.plan.limits.max_runs || record.input_tokens >= record.plan.limits.max_input_tokens
       || record.attempt >= record.plan.steps[record.step].attempts;
@@ -420,6 +478,12 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
         await report(github, repo, record); await store.save(state); continue;
       }
       run = matches[0] || null;
+      if (run) {
+        const jobs = (await github.rest.actions.listJobsForWorkflowRun({...repo, run_id: run.id, per_page: 100})).data.jobs;
+        executionStarted = jobs.some(job => job.name === 'run' && job.steps?.some(step =>
+          ['Execute one committed brief', 'Execute fixed harmless probe'].includes(step.name)
+          && (step.status === 'in_progress' || step.status === 'completed' && step.conclusion !== 'skipped')));
+      }
       if (run?.status === 'completed') {
         const comments = await github.paginate(github.rest.issues.listComments, {...repo, issue_number: record.issue, per_page: 100});
         result = comments.filter(item => item.user.login === 'github-actions[bot]')
@@ -453,7 +517,7 @@ async function controllerOnce({github, context, root = process.cwd(), now = Date
       }
       await report(github, repo, record); await store.save(state); continue;
     }
-    let transition = advance(record, {run, receipt: result, changed}, now);
+    let transition = advance(record, {run, receipt: result, changed, execution_started: executionStarted}, now);
     record = state.records[index] = transition.record;
     if (['pending', 'retry'].includes(record.status) && !transition.effects.length) {
       if (await busy(record)) record.message = 'Waiting in the durable repository queue; another worker is reserved/active. No new dispatch was made.';
@@ -522,4 +586,4 @@ async function waitForPredecessor({github, repo, value = '', branch, worker = 'c
   throw Error('Predecessor workflow is not complete; durable state remains for watchdog recovery');
 }
 
-module.exports = {STATE_REF, STATE_FILE, regular, loadPlan, parse, createRecord, receipt, advance, Store, summary, controller, contractHashes, waitForPredecessor};
+module.exports = {STATE_REF, STATE_FILE, regular, loadPlan, loadBriefPlan, parse, createRecord, receipt, advance, Store, summary, controller, contractHashes, waitForPredecessor};
