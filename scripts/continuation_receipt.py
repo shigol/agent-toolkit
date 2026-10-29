@@ -42,10 +42,12 @@ def assess(record, observation, now):
         if automation.get('id') != continuation['id'] or automation.get('thread_id') != continuation['target_thread']:
             return result('mismatched_task', 'The provider observation belongs to another task or target thread.')
         schedule = automation.get('schedule')
-        if not isinstance(schedule, str) or 'RRULE:' in schedule:
+        if not isinstance(schedule, str):
             return result('invalid_observation', 'This adapter requires an explicit one-time provider schedule.')
-        starts = re.findall(r'^DTSTART:(\d{8}T\d{6}Z)\r?$', schedule, re.MULTILINE)
-        if len(starts) != 1 or datetime.strptime(starts[0], '%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc) != due:
+        # Validate the whole supported layout, not just a DTSTART extracted from
+        # an otherwise unrestricted calendar. EXDATE/RDATE can change its meaning.
+        start = re.fullmatch(r'BEGIN:VEVENT\r?\nDTSTART:(\d{8}T\d{6}Z)\r?\nEND:VEVENT\r?\n?', schedule)
+        if not start or datetime.strptime(start.group(1), '%Y%m%dT%H%M%SZ').replace(tzinfo=timezone.utc) != due:
             return result('mismatched_task', 'The provider schedule no longer matches the registered check.')
         details = automation.get('run_details') or {}
         run = details.get('last_run')
@@ -112,7 +114,7 @@ def main():
     args = parser.parse_args()
     try:
         report = assess(read_json(args.record), read_json(args.observation), datetime.now(timezone.utc).isoformat())
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):
         report = {'state': 'invalid_observation', 'reason': 'Cannot read bounded JSON inputs.', 'mission_complete': False}
     print(json.dumps(report, indent=2))
     return 0 if report['state'] in ('scheduled', 'invocation_recorded', 'result_available') else 2

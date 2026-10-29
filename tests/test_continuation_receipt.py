@@ -1,6 +1,10 @@
 import copy
 import importlib.util
+import json
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import unittest
 
 SPEC = importlib.util.spec_from_file_location('continuation_receipt', Path(__file__).resolve().parents[1] / 'scripts/continuation_receipt.py')
@@ -102,3 +106,22 @@ class ContinuationReceiptTests(unittest.TestCase):
         for observed in ('bad', '2026-10-29T10:00:00'):
             result = RECEIPT.assess(self.record, {'observed_at': observed, 'automation': self.automation}, self.now)
             self.assertEqual(result['state'], 'invalid_observation')
+
+    def test_extra_ical_properties_cannot_certify_a_single_future_check(self):
+        self.record['continuation']['scheduled_for'] = '2026-10-29T10:10:00Z'
+        self.automation['is_enabled'] = True
+        for extra in ('EXDATE:20261029T101000Z', 'RDATE:20261030T101000Z',
+                      'rrule:FREQ=DAILY', 'DTSTART;TZID=UTC:20261030T101000'):
+            self.automation['schedule'] = 'BEGIN:VEVENT\nDTSTART:20261029T101000Z\n' + extra + '\nEND:VEVENT'
+            self.assertNotEqual(self.check()['state'], 'scheduled', extra)
+
+    def test_cli_reports_deep_json_as_invalid_instead_of_crashing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'record.json').write_text(json.dumps(self.record))
+            (root / 'observation.json').write_text('[' * 10000 + '0' + ']' * 10000)
+            completed = subprocess.run([sys.executable, str(SPEC.origin), '--record', str(root / 'record.json'),
+                                        '--observation', str(root / 'observation.json')], capture_output=True, text=True)
+            self.assertEqual(completed.returncode, 2)
+            self.assertEqual(json.loads(completed.stdout)['state'], 'invalid_observation')
+            self.assertNotIn('Traceback', completed.stderr)

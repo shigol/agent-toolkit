@@ -8,7 +8,7 @@ Run:
 python3 .agent-toolkit/scripts/continuation_receipt.py --record /path/to/mission.json --observation /path/to/observation.json
 ```
 
-The mission record must identify `continuation.id`, `continuation.target_thread` and `continuation.scheduled_for`. This initial adapter supports one-time UTC `DTSTART` schedules; it rejects recurring or changed schedules. It makes no network requests, starts no worker and changes no files. The caller must query the provider and timestamp the observation honestly; a JSON file is not independent provider evidence.
+The mission record must identify `continuation.id`, `continuation.target_thread` and `continuation.scheduled_for`. This initial adapter supports exactly `BEGIN:VEVENT`, one UTC `DTSTART`, and `END:VEVENT`, with LF or CRLF line endings and an optional final newline. It rejects extra properties, exclusions, added occurrences, recurrence and changed schedules. It makes no network requests, starts no worker and changes no files. The caller must query the provider and timestamp the observation honestly; a JSON file is not independent provider evidence.
 
 The check distinguishes an enabled future schedule, a recorded invocation and a matching result. Missing invocation history remains unconfirmed even if the provider reports a last-run timestamp or consumed the schedule. Results must match the actual invocation and be newer than its current retry start. Failed attempts, truncated output, stale observations and unknown result flags do not pass.
 
