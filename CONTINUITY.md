@@ -21,6 +21,8 @@ New projects initialized by this toolkit and Codex global profiles receive a com
 
 Ordinary chats use the same reporting rule. If that chat cannot submit and inspect a cloud job, it must say that work stops when the turn ends. Account instructions can carry this rule, but this toolkit cannot inject it into every account, product or unsupported chat surface.
 
+For native one-time Codex task observations, the read-only [continuation receipt check](docs/CONTINUATION-RECEIPTS.md) distinguishes saved schedules, recorded invocations and available results. It does not dispatch work, prove delivery or accept a mission. It is not an automatic end-of-turn enforcement mechanism.
+
 ## Register a bounded cloud plan
 
 The continuity integration adds a deterministic controller around the existing committed-brief worker. It requires a reviewed installation in the consuming repository; a toolkit pin alone does not copy new workflow files into an existing project. New `init-project` integrations include the files. Keep existing project authentication and dependency preparation when merging worker changes.
