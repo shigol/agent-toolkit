@@ -147,3 +147,39 @@ Automatic consumer updates follow commits published in this repository. Updating
 Taste browser discovery includes `/opt/pw-browsers/chromium` as a fallback when it exists. Explicit browser overrides retain precedence. This documented compatibility patch applies to actual Taste browser launches as well as runtime verification; its upstream and patched hashes are recorded in the manifest and its diff is in `patches/`.
 
 Claude project threads may not expose filesystem skills through their Skill tool even when every file is installed. In that host, read the selected `SKILL.md` directly; a reload is not claimed to enable discovery. `status` reports file installation only.
+
+## Commit skills audit
+
+Consumer setup (`toolkit.py install` from the consumer's pinned `.agent-toolkit`)
+and `init-project` install `.githooks/commit-msg` and set local `core.hooksPath`.
+The hook runs `scripts/skills_audit.py` directly from the pin; consumers carry no
+copy of the grader. Standalone source-link installs outside a consumer's pinned
+submodule do not install Git hooks. Setup preserves other `.githooks` files and
+refuses a foreign commit-msg, custom hooksPath or active default hooks before
+changing skill links. Merge those project hooks deliberately, then rerun setup.
+Career may keep its compatibility entry point and existing hook.
+
+The audit preserves Career's stamp, nightly collector commands and offline
+selftests. From a consumer root:
+
+```sh
+python3 .agent-toolkit/scripts/skills_audit.py selftest --pinned-sources
+python3 .agent-toolkit/scripts/skills_audit.py stamp .git/COMMIT_EDITMSG
+```
+
+Claude uses `CLAUDE_CODE_SESSION_ID` and its local project transcript. Codex uses
+`CODEX_THREAD_ID` and the matching rollout under `${CODEX_HOME:-~/.codex}/sessions`.
+It accepts paired function/custom tool results, including code-mode output,
+checks the same Tbilisi window and rejects failed or truncated evidence.
+It never picks the newest session or borrows another thread's reads. These
+formats were checked against a local Codex rollout; unsupported or ephemeral
+hosts cannot provide the same evidence. OpenAI's [CLI reference](https://developers.openai.com/codex/cli/reference)
+documents `--ephemeral`, which disables session persistence.
+
+`UNREAD`, `PARTIAL` and `GUIDE` refuse the commit; full reads stamp `Skills-Read`
+and `Skills-Window`. Existing fail-open behavior for unknown sources, missing
+session/transcript and stamp errors is retained. A missing transcript prints a
+skip diagnostic. This checks declared reads, not semantic application, missing
+Skills lines or deliberate hook bypass. New clones must run setup: Git does not
+clone local hooksPath configuration. Cache-only skill readability does not mean
+the audit executable or hooks are ready. No account files are edited.

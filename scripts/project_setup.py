@@ -69,6 +69,8 @@ def init_project(project, root, source=PUBLIC_SOURCE):
     if git(root, 'status', '--porcelain', '--untracked-files=no'):
         raise ValueError('Use a committed toolkit checkout for reproducible initialization')
     revision = git(root, 'rev-parse', 'HEAD')
+    import commit_hooks
+    commit_hooks.plan(project)  # Reject foreign hook ownership before any initialization changes.
     entries = catalogue(root)
     manifest = json.loads((root / 'toolkit.lock.json').read_text())
     templates = root / 'integrations/github'
@@ -80,6 +82,7 @@ def init_project(project, root, source=PUBLIC_SOURCE):
                   ('agent-toolkit-check.yml', 'agent-toolkit-merge.yml', 'codex-request.yml', 'codex-task.yml',
                    'codex-continuity.yml', 'codex-continuity-watchdog.yml', 'codex-monitor.yml', 'codex-recover.yml', 'claude-wake.yml')})
     files['.github/dependabot.yml'] = (templates / 'dependabot.yml').read_bytes()
+    files['.githooks/commit-msg'] = commit_hooks.HOOK.encode()
     files['tools/setup-agent-toolkit.sh'] = (templates / 'setup-agent-toolkit.sh').read_bytes()
     for name in ('AGENTS.md', 'CLAUDE.md', '.agent-toolkit.json', '.gitmodules'):
         regular(project, project / name)
@@ -144,6 +147,7 @@ def init_project(project, root, source=PUBLIC_SOURCE):
     old_links = {(agent, entry['name']) for agent in ('.agents', '.claude') for entry in entries
                  if os.path.lexists(project / agent / 'skills' / entry['name'])}
     cache_existed = (project / '.agent-skill-cache').exists()
+    old_hooks_path = git(project, 'config', '--local', '--get', 'core.hooksPath', check=False)
     try:
         if not existing:
             options = []
@@ -157,7 +161,7 @@ def init_project(project, root, source=PUBLIC_SOURCE):
             path = project / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
-            if name.endswith('.sh') and snapshots[name] is None:
+            if (name.endswith('.sh') or name == '.githooks/commit-msg') and snapshots[name] is None:
                 path.chmod(0o755)
         subprocess.run([os.sys.executable, str(target / 'scripts/toolkit.py'), 'install',
                         '--project', str(project)], check=True, stdout=subprocess.DEVNULL)
@@ -165,6 +169,10 @@ def init_project(project, root, source=PUBLIC_SOURCE):
                         '--project', str(project), '--agents', 'claude', '--check'],
                        check=True, stdout=subprocess.DEVNULL)
     except BaseException:
+        if old_hooks_path:
+            git(project, 'config', '--local', 'core.hooksPath', old_hooks_path)
+        else:
+            git(project, 'config', '--local', '--unset', 'core.hooksPath', check=False)
         for name, snapshot in snapshots.items():
             path = project / name
             if snapshot is None:
