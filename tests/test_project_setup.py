@@ -65,6 +65,9 @@ class ProjectSetupTests(unittest.TestCase):
         (self.project / 'AGENTS.md').write_text('Keep my project instructions.\n')
         result = self.initialize()
         self.assertEqual(result['toolkit_commit'], self.revision)
+        self.assertEqual(self.git(self.project, 'config', '--get', 'core.hooksPath'), '.githooks')
+        self.assertIn('scripts/skills_audit.py', (self.project / '.githooks/commit-msg').read_text())
+        self.assertTrue(os.access(self.project / '.githooks/commit-msg', os.X_OK))
         self.assertEqual(self.git(self.project / '.agent-toolkit', 'rev-parse', 'HEAD'), self.revision)
         for agent in ('.agents', '.claude'):
             source = self.project / agent / 'skills/humanizer/SKILL.md'

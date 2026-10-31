@@ -146,6 +146,12 @@ def preflight_install(project, agents, data, selected, cached=None, root=None):
 
 
 def install(project, agents):
+    import commit_hooks
+    hook = None
+    if ROOT.resolve() == (project / '.agent-toolkit').resolve():
+        try: hook = commit_hooks.plan(project)
+        except (RuntimeError, OSError, subprocess.CalledProcessError) as e:   # never block skill setup on hook ownership
+            print(f'WARN: shared commit audit not installed: {e}', file=sys.stderr)
     data = verify_sources()
     selected = selection(project, data)
     links, stale, cache = preflight_install(project, agents, data, selected)
@@ -165,10 +171,18 @@ def install(project, agents):
     if cache and not cache_enabled(project):
         shutil.rmtree(project / entry_cache.DIRECTORY)
     write_updates(route_updates)
+    try: commit_hooks.install(project, hook)
+    except (OSError, subprocess.CalledProcessError) as e:   # e.g. read-only .git/config on a runner
+        print(f'WARN: shared commit audit not activated: {e}', file=sys.stderr)
     verify(project, agents)
 
 
 def verify(project, agents, check_routes=True):
+    if ROOT.resolve() == (project / '.agent-toolkit').resolve():
+        import commit_hooks
+        try: commit_hooks.verify(project)
+        except (RuntimeError, OSError, subprocess.CalledProcessError) as e:   # report, never fail skill verification
+            print(f'WARN: {e}', file=sys.stderr)
     data = verify_sources()
     selected = selection(project, data)
     if cache_enabled(project):
