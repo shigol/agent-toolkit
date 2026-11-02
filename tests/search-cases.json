@@ -168,6 +168,30 @@
     {
       "query": "Diagnose why the Python build failed",
       "expected": "systematic-debugging"
+    },
+    {
+      "query": "Research rival pricing and positioning from their websites",
+      "expected": "competitor-profiling"
+    },
+    {
+      "query": "Compare two competitor websites without any SEO tools",
+      "expected": "competitor-profiling"
+    },
+    {
+      "query": "Refresh our competitive intelligence profiles using dated sources",
+      "expected": "competitor-profiling"
+    },
+    {
+      "query": "Plan the beta announcement and early access campaign",
+      "expected": "launch"
+    },
+    {
+      "query": "Turn shipped customer features into an announcement",
+      "expected": "launch"
+    },
+    {
+      "query": "Choose channels for our product launch marketing",
+      "expected": "launch"
     }
   ],
   "abstain": [

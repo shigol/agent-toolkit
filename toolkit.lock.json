@@ -58,6 +58,22 @@
       "source_path": "skills/systematic-debugging",
       "license_path": "LICENSE",
       "review_notes": "MIT (Jesse Vincent) source inspected at 2ce8aa1: SKILL.md plus 4 reference .md files, 3 pressure-test .md files, a TS example and find-polluter.sh (bash test-bisection helper; runs only the project's tests; not executed during intake). No install or refresh commands run. Distinct from verification-before-completion (cause before fix vs evidence before claim). Same upstream and revision as the existing verification-before-completion entry. Requested via Claude project thread for EVG-124 end-to-end proof (Eugene 2026-10-27: 'Prove and test everything ... End to end'). Live host selection unverified at intake."
+    },
+    {
+      "name": "competitor-profiling",
+      "repository": "https://github.com/coreyhaines31/marketingskills",
+      "commit": "88c79f6528a9347420e57ceb1fff9a60de651768",
+      "source_path": "skills/competitor-profiling",
+      "license_path": "LICENSE",
+      "review_notes": "EVG-142: user-approved addition after source review. MIT license retained. Import only this skill and its committed references/evals, without modifying upstream text or importing other skills. Product group: competitor-profiling gathers sourced comparable evidence; launch plans marketing and customer adoption. No runtime installation or public publishing. Qualitative competitor research works with authorized browsing when SEO tools are absent; Claude WebFetch terminology maps to actual host capabilities. Core launch planning needs no external account. Installation and static retrieval do not establish live selection or quality; host smoke evidence is recorded separately."
+    },
+    {
+      "name": "launch",
+      "repository": "https://github.com/coreyhaines31/marketingskills",
+      "commit": "88c79f6528a9347420e57ceb1fff9a60de651768",
+      "source_path": "skills/launch",
+      "license_path": "LICENSE",
+      "review_notes": "EVG-142: user-approved addition after source review. MIT license retained. Import only this skill and its committed references/evals, without modifying upstream text or importing other skills. Product group: competitor-profiling gathers sourced comparable evidence; launch plans marketing and customer adoption. No runtime installation or public publishing. Qualitative competitor research works with authorized browsing when SEO tools are absent; Claude WebFetch terminology maps to actual host capabilities. Core launch planning needs no external account. Installation and static retrieval do not establish live selection or quality; host smoke evidence is recorded separately."
     }
   ],
   "skills": [
@@ -210,6 +226,16 @@
       "name": "systematic-debugging",
       "path": "vendor/systematic-debugging/skills",
       "package": "systematic-debugging"
+    },
+    {
+      "name": "competitor-profiling",
+      "path": "vendor/competitor-profiling/skills",
+      "package": "competitor-profiling"
+    },
+    {
+      "name": "launch",
+      "path": "vendor/launch/skills",
+      "package": "launch"
     }
   ],
   "files": {
@@ -1308,7 +1334,17 @@
     "vendor/systematic-debugging/skills/test-academic.md": "fe2ba480d78ac0d686dc025f41c2a32a43d642bf533f91b0c6053a04d35d6486",
     "vendor/systematic-debugging/skills/test-pressure-1.md": "0b6a915db0054577819834c79be9eb614e97bddba10d73768e1fbe91cfed048a",
     "vendor/systematic-debugging/skills/test-pressure-2.md": "b2030aeffba07050e8ad573ddf87486457c4a016a786bb326235bebd856f2016",
-    "vendor/systematic-debugging/skills/test-pressure-3.md": "96b50a52e2c7989c9cf20fb752c47c1e9a3a70dc362f8f7989f8f5b64dac7708"
+    "vendor/systematic-debugging/skills/test-pressure-3.md": "96b50a52e2c7989c9cf20fb752c47c1e9a3a70dc362f8f7989f8f5b64dac7708",
+    "vendor/competitor-profiling/LICENSE": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591",
+    "vendor/competitor-profiling/skills/SKILL.md": "66d93cd9c8120d63d45c4154f13bf6b475db99b7628569ed4e42eb271909e254",
+    "vendor/competitor-profiling/skills/evals/evals.json": "89e7a8dee7c688adde18f2885ee4b52011faab29255f182c401b19fe78caf264",
+    "vendor/competitor-profiling/skills/references/templates.md": "710d78cb519012eb7e39f63643e22d7b9026c91c569262b44c45535c10717a91",
+    "vendor/competitor-profiling/skills/references/tool-reference.md": "fda64910bc1b3a2bc7df21c15701220849b4b79a58a51f9d3ccae1b7311dbd79",
+    "vendor/launch/LICENSE": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591",
+    "vendor/launch/skills/SKILL.md": "30537ad3f4b0429fcc4053cf6bf04bc0dee316b9e5f7e7ec2e74a9bc44a9ead7",
+    "vendor/launch/skills/evals/evals.json": "f2ceb01d664e24ea253789a9a686997f5cc33a0fc99f57bf215acdada787322c",
+    "vendor/launch/skills/references/shipped-changes.md": "873c79d17d3f428147348a9cc2a5e3d6bb8282cf13fc8a143d539840e8abaa96",
+    "vendor/launch/skills/references/site-launch-qa.md": "aac0447d0d518468e86e971f4e781b61ee05e81dada402e2edcef709cc6418ab"
   },
   "groups": {
     "design": [
@@ -1323,7 +1359,9 @@
       "humanizer"
     ],
     "product": [
-      "pm-skills"
+      "pm-skills",
+      "competitor-profiling",
+      "launch"
     ],
     "development": [
       "verification-before-completion",

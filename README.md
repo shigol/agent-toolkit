@@ -13,6 +13,7 @@ Shared, versioned design, video, writing and product skills for Eugene's project
 | [Humanizer](https://github.com/blader/humanizer) | 1 | Editing prose |
 | [PM Skills](https://github.com/phuryn/pm-skills) | 5 | Strategy, metrics, prioritization, PRDs and market sizing |
 | [Superpowers](https://github.com/obra/superpowers) | 2 | Root-cause debugging and evidence before completion claims |
+| [Marketing Skills](https://github.com/coreyhaines31/marketingskills) | 2 | Competitor evidence and product launch marketing |
 
 Exact upstream commits, all vendored file hashes, skill names and paths are in `toolkit.lock.json`. Full supporting files are included. Upstream licenses and notices are preserved beside each collection under `vendor/`; they govern those files. The POSIX Impeccable launcher has its executable bit set for direct invocation; file contents are unchanged. Toolkit-owned scripts and docs are maintained in this public repository; no license grant is implied for those files.
 
@@ -64,7 +65,7 @@ Commit `.agent-toolkit.json` in the consuming project. Both agents use the same 
 {"schema": 1, "groups": ["design", "video"], "native_limit": 22}
 ```
 
-Groups are `design` (17 skills), `video` (five HyperFrames entry skills), `writing` (Humanizer), and `product` (five PM skills). These four are the original native selections; development is described below. Optional `include` and `exclude` arrays take exact skill names. No config preserves the earlier all-skills behavior; invalid config stops setup before changes.
+Groups are `design` (17 skills), `video` (five HyperFrames entry skills), `writing` (Humanizer), and `product` (five PM skills plus competitor profiling and launch marketing). These four are the original native selections; development is described below. Optional `include` and `exclude` arrays take exact skill names. No config preserves the earlier all-skills behavior; invalid config stops setup before changes.
 The `development` group contains verification-before-completion and systematic-debugging. Existing group choices control native links; the full catalogue remains searchable. Explicit `exclude` names are excluded from search as well. Include `development` only if native exposure is desired; it is not required for direct-file task selection.
 
 Set an optional positive integer `native_limit` to bound native catalogue growth, for example `{"schema":1,"groups":["design","video"],"native_limit":22}`. The first matching registered entries remain native; later additions remain available through the index and search without new native links. Explicit `include` names take priority within the cap; exceeding it fails clearly rather than silently dropping requested names. Omitting the limit preserves older behavior. This caps skill count, not tokens; keep descriptions concise and measure actual host context separately. Choose a limit from the project's current intended selection.

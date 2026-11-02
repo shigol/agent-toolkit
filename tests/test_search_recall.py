@@ -38,6 +38,16 @@ class RecallTests(unittest.TestCase):
             with self.subTest(query=query):
                 self.assertEqual(expected, skills.search(query, limit=3)[0]['name'])
 
+    def test_marketing_admission_does_not_match_engineering_operations(self):
+        for query in (
+            'Deploy the backend service using our existing release script',
+            'Fix a Python subprocess that exits immediately',
+            'Rename the database column and run its migration',
+        ):
+            with self.subTest(query=query):
+                names = {row['name'] for row in skills.search(query)}
+                self.assertFalse(names & {'competitor-profiling', 'launch'})
+
 
 if __name__ == '__main__':
     unittest.main()
