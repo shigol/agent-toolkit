@@ -4,7 +4,7 @@
 
 **Invocation:** automatic
 
-**Route:** Plan product launch marketing and feature announcements
+**Route:** Plan launch marketing
 
 **Synonyms:** product launch; launch marketing; go-to-market plan; GTM; feature announcement; launch checklist; Product Hunt; waitlist; early access; customer changelog
 

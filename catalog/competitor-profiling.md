@@ -4,7 +4,7 @@
 
 **Invocation:** automatic
 
-**Route:** Research competitors from their websites and compare positioning, features or pricing
+**Route:** Profile competitors
 
 **Synonyms:** competitor profile; competitor research; competitive intelligence; rival analysis; competitor pricing comparison; competitive landscape; competitor website research
 

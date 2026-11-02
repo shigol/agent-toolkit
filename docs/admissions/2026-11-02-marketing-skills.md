@@ -24,6 +24,8 @@ Both are automatic candidates in the existing product group. Consumer caps and e
 
 ## Delivery and acceptance
 
+Compact routing header: Career main was already 5,887/5,632 bytes. The generator now points fallback/setup to SELECTION.md, requires full selected source reads and retains per-row invocation restrictions; project-owned text is preserved. With both new routes its projected size is 5,624 bytes.
+
 Independent source review: pending; vendor/manifest changes must not merge before the other agent reviews this version. A clean source-category scan is not approval.
 
 Connected consumers: Career and Job Hub both select product and have no native cap in their current configuration. After a reviewed release, their pin, entry cache, links and routes must be regenerated together and their existing validation must pass. Source text must never be manually edited in a consumer cache.

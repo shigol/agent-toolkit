@@ -21,16 +21,13 @@ def block(root, selected):
             route = 'Explicit alternative direction only, ' + route
         target[route].append(name)
     lines = [START,
-             'Before edits/drafts, fully read matching SKILL.md; one primary UI workflow. '
-             'Missing coverage: .agent-toolkit/catalog/README.md, then search. Project rules/templates win. '
-             'Humanizer: read whole pattern block for work reports; full source for docs/outside messages. Keep facts/quotes/evidence.']
+             'Read matching SKILL.md fully before work. Rules/templates win; one UI workflow. '
+             'Fallback/setup: .agent-toolkit/SELECTION.md.']
     for route, names in automatic.items():
         lines.append('- ' + route + ': ' + ', '.join(names))
     for route, names in restricted.items():
         lines.append('- ' + route + ': ' + ', '.join(names))
-    lines += ['Sources: .agents/skills/<name>/SKILL.md or .claude/skills/<name>/SKILL.md; '
-              'else guide Source. Missing: bash tools/setup-agent-toolkit.sh --skills-only. Honor exclusions.',
-              'Commit/PR: Skills: <sources read this task> or Skills: none (<why>).', END]
+    lines += ['Commit/PR: Skills: <names actually read> or Skills: none (<why>).', END]
     return '\n'.join(lines) + '\n'
 
 
