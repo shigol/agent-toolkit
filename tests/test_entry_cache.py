@@ -59,7 +59,7 @@ class EntryCacheTests(unittest.TestCase):
         subprocess.run(['git', 'clone', '--quiet', '--no-recurse-submodules', str(self.project), str(clone)], check=True)
         self.assertFalse((clone / '.agent-toolkit').exists())
         manifest = json.loads((clone / '.agent-skill-cache/manifest.json').read_text())
-        self.assertEqual(len(manifest['skills']), 30)
+        self.assertEqual(len(manifest['skills']), len(self.data['skills']))
         for skill in self.data['skills']:
             canonical = (toolkit.ROOT / skill['path'] / 'SKILL.md').read_bytes()
             for agent in ('.agents', '.claude'):

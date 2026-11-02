@@ -37,10 +37,10 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(actual, (self.project / 'CLAUDE.md').read_text())
         self.assertTrue(actual.startswith(routes.START))
         self.assertTrue(actual.endswith(local_rules))
-        clear = 'Humanizer: read whole pattern block for work reports;'
+        clear = 'Read matching SKILL.md fully before work.'
         old = 'Humanizer: ### patterns before reporting work (code too);'
         self.assertIn(clear, actual)
-        self.assertLessEqual(len(clear.encode()) - len(old.encode()), 1)
+        self.assertIn('Fallback/setup: .agent-toolkit/SELECTION.md.', actual)
         for name in ('humanizer', 'systematic-debugging', 'verification-before-completion'):
             self.assertIn(': ' + name + '\n', actual)
         self.assertNotIn(': impeccable\n', actual)

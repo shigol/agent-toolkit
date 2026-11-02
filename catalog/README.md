@@ -1,6 +1,6 @@
 # Skill selection catalogue
 
-Selection guides for the 30 registered shared skills, reviewed against the pinned sources on 2026-10-27. These are toolkit-owned summaries; the original SKILL.md files and licenses remain unchanged. Local project procedures and unregistered supporting HyperFrames guides are outside this inventory.
+Selection guides for the 32 registered shared skills. Original 30 reviewed on 2026-10-27; competitor-profiling and launch admitted from reviewed pinned sources on 2026-11-02. These are toolkit-owned summaries; the original SKILL.md files and licenses remain unchanged. Local project procedures and unregistered supporting HyperFrames guides are outside this inventory.
 
 ## How to use it
 
@@ -50,6 +50,8 @@ For all HyperFrames entries, distinguish video output from live application moti
 | [product-strategy](product-strategy.md) | Set product direction and tradeoffs | automatic |
 | [verification-before-completion](verification-before-completion.md) | Check fresh task evidence before claiming code, tests or a requested change is complete. | automatic |
 | [systematic-debugging](systematic-debugging.md) | Find the root cause of a bug, test failure or unexpected behavior before proposing or applying a fix. | automatic |
+| [competitor-profiling](competitor-profiling.md) | Research competitor websites and produce dated, sourced profiles and comparisons. | automatic |
+| [launch](launch.md) | Plan product launch marketing, feature announcements and adoption follow-up. | automatic |
 
 ## Before adding or changing a skill
 
