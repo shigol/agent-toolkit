@@ -198,7 +198,7 @@ jobs:
           RESULT_BRANCH: codex/task-${{ github.run_id }}
         run: |
           patch="$RUNNER_TEMP/codex-task/changes.patch"
-          if [ ! -s "$patch" ]; then exit 0; fi
+          if [ ! -s "$patch" ]; then python3 .github/scripts/codex_task_patch.py blocked "$RUNNER_TEMP/codex-task/patch-report.json"; exit; fi
           # Trusted helper preflights paths/modes before touching this checkout.
           python3 .github/scripts/codex_task_patch.py transport "$patch" "$RESULT_BRANCH" "${{ github.run_id }}" >> "$GITHUB_OUTPUT"
       - name: Return status to the request thread

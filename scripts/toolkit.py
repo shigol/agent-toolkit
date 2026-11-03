@@ -56,7 +56,7 @@ def selection(project, data):
     if config.is_symlink():
         raise RuntimeError('Project selection must be a regular file')
     settings = json.loads(config.read_text())
-    if not isinstance(settings, dict) or settings.get('schema') != 1 or set(settings) - {'schema', 'groups', 'include', 'exclude', 'native_limit', 'entry_cache'}:
+    if not isinstance(settings, dict) or settings.get('schema') != 1 or set(settings) - {'schema', 'groups', 'include', 'exclude', 'native_limit', 'entry_cache', 'review'}:
         raise RuntimeError('Invalid project selection format')
     if 'entry_cache' in settings and type(settings['entry_cache']) is not bool:
         raise RuntimeError('entry_cache must be boolean')
