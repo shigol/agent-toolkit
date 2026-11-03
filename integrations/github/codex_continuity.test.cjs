@@ -762,3 +762,49 @@ test('completion wakeup rejects other sources and stops its bounded API wait', a
   await assert.rejects(waitForPredecessor({github, repo: {owner: 'owner', repo: 'project'}, value: '123', branch: 'main', polls: 2, sleep: async () => {}}), /not complete/);
   assert.equal(calls, 2);
 });
+
+test('a dispatch cancelled while waiting is re-queued once the slot is free, oldest first', async () => {
+  const {requeueDropped, dropInputs} = require('./codex_continuity.cjs');
+  const repo = {owner: 'owner', repo: 'project'};
+  const title = (id, brief, extra = 'task - -') => `Codex request ${id} — ${brief} · ${extra}`;
+  const run = (id, display_title, status, conclusion, minute) => ({id, display_title, status, conclusion,
+    event: 'workflow_dispatch', head_branch: 'main', head_repository: {full_name: 'owner/project'},
+    created_at: new Date(now + minute * 60000).toISOString()});
+  assert.deepEqual(dropInputs(title('41', 'docs/a.md', 'task 12 99')),
+    {request_id: '41', brief: 'docs/a.md', mode: 'task', request_issue: '12', previous_run: '99'});
+  assert.equal(dropInputs('Codex request 41 — docs/a.md'), null);
+  assert.equal(dropInputs(title('41', '../a.md')), null);
+  const api = (runs, started = []) => {
+    const sent = [];
+    return {sent, github: {paginate: async () => runs, rest: {actions: {listWorkflowRuns: () => {},
+      listJobsForWorkflowRun: async ({run_id}) => ({data: {total_count: started.includes(run_id) ? 2 : 0}}),
+      createWorkflowDispatch: async input => { sent.push(input); }}}}};
+  };
+  const runs = [
+    run(1, title('1', 'docs/a.md'), 'completed', 'cancelled', 0),            // dropped, oldest
+    run(2, title('2', 'docs/b.md', 'task 7 -'), 'completed', 'cancelled', 1), // dropped
+    run(3, title('3', 'docs/c.md'), 'completed', 'cancelled', 2),            // stopped after it started
+    run(4, title('continuity-1-0-1', 'docs/a.md', 'task 5 -'), 'completed', 'cancelled', 3),
+    run(5, title('5', 'docs/d.md'), 'completed', 'cancelled', 4),            // dropped, then re-queued
+    run(6, title('5', 'docs/d.md'), 'completed', 'success', 5),
+    run(9, title('9', 'docs/e.md'), 'in_progress', null, 6)];
+  let fake = api(runs, [3]);
+  let out = await requeueDropped({github: fake.github, repo, runId: 9, branch: 'main', now: now + 3600000});
+  assert.equal(out.action, 'requeued'); assert.equal(out.run_id, 1); assert.equal(out.remaining, 1);
+  assert.deepEqual(fake.sent, [{...repo, workflow_id: 'codex-task.yml', ref: 'main',
+    inputs: {request_id: '1', brief: 'docs/a.md', mode: 'task', request_issue: '', previous_run: ''}}]);
+  // The re-queued request now waits; nothing else is sent until it has run.
+  fake = api([...runs, run(10, title('1', 'docs/a.md'), 'pending', null, 7)], [3]);
+  out = await requeueDropped({github: fake.github, repo, runId: 9, branch: 'main', now: now + 3600000});
+  assert.equal(out.action, 'wait'); assert.equal(fake.sent.length, 0);
+  // Its own run picks the next drop; the issue and request id are carried unchanged.
+  fake = api([...runs, run(10, title('1', 'docs/a.md'), 'in_progress', null, 7)], [3]);
+  out = await requeueDropped({github: fake.github, repo, runId: 10, branch: 'main', now: now + 3600000});
+  assert.equal(out.run_id, 2);
+  assert.deepEqual(fake.sent[0].inputs, {request_id: '2', brief: 'docs/b.md', mode: 'task', request_issue: '7', previous_run: ''});
+  // A request dropped too often is reported, not sent again.
+  const loop = Array.from({length: 6}, (_, i) => run(20 + i, title('20', 'docs/f.md'), 'completed', 'cancelled', i));
+  fake = api(loop);
+  out = await requeueDropped({github: fake.github, repo, runId: 99, branch: 'main', now: now + 3600000});
+  assert.equal(out.action, 'none'); assert.equal(out.skipped[0].run_id, 25); assert.equal(fake.sent.length, 0);
+});
