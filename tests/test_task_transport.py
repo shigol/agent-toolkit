@@ -104,24 +104,38 @@ class TaskTransportTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 PATCH.allowed('docs/a.md')
 
-    def test_sparse_receiver_adds_only_touched_project_root_directories(self):
+    def test_sparse_receiver_carries_project_root_changes_without_checking_them_out(self):
         import json
         Path('.agent-toolkit.json').write_text(json.dumps({'schema': 1, 'review': {'roots': ['job-market'], 'held': ['job-market/db']}}))
         Path('job-market/crawler').mkdir(parents=True); Path('job-market/crawler/costs.py').write_text('x = 1\n')
         Path('job-market/db').mkdir(); Path('job-market/db/rows.json').write_text('{}\n')
+        Path('job-market/README.md').write_text('top\n')
         self.git('add', '.'); self.git('commit', '-qm', 'Project layout')
         Path('job-market/crawler/costs.py').write_text('x = 2\n')
+        Path('job-market/README.md').write_text('top 2\n')
         Path('job-market/app').mkdir(); Path('job-market/app/new.py').write_text('y = 1\n')
+        Path('docs').mkdir(exist_ok=True); Path('docs/note.md').write_text('note\n')
         self.git('add', '.')
         patch = self.root / 'candidate.patch'
         patch.write_bytes(self.git('diff', '--cached', '--binary'))
-        self.git('reset', '--hard', '-q', 'HEAD'); Path('job-market/app/new.py').unlink(missing_ok=True)
+        self.git('reset', '--hard', '-q', 'HEAD'); Path('job-market/app/new.py').unlink(missing_ok=True); Path('docs/note.md').unlink(missing_ok=True)
         self.git('sparse-checkout', 'set', 'docs')
-        self.assertFalse(Path('job-market/crawler/costs.py').exists())
-        PATCH.apply(patch)
-        self.assertEqual(Path('job-market/crawler/costs.py').read_text(), 'x = 2\n')
-        self.assertEqual(Path('job-market/app/new.py').read_text(), 'y = 1\n')
+        bare = self.root.parent / (self.root.name + '-sparse.git')
+        self.git('init', '--bare', '-q', str(bare))
+        self.addCleanup(lambda: __import__('shutil').rmtree(bare, ignore_errors=True))
+        self.git('remote', 'add', 'origin', str(bare))
+        self.assertEqual(PATCH.save_branch(patch, 'codex/task-7', '7'), 'codex/task-7')
+        # the sparse cone and the checkout are unchanged: job-market (db included) is never checked out
+        self.assertEqual(self.git('sparse-checkout', 'list').split(), [b'docs'])
         self.assertFalse(Path('job-market/db/rows.json').exists())
+        self.assertFalse(Path('job-market/crawler/costs.py').exists())
+        ref = 'refs/heads/codex/task-7'
+        for name, text in (('job-market/crawler/costs.py', b'x = 2\n'), ('job-market/README.md', b'top 2\n'),
+                           ('job-market/app/new.py', b'y = 1\n'), ('docs/note.md', b'note\n'), ('job-market/db/rows.json', b'{}\n')):
+            self.assertEqual(self.git('-C', str(bare), 'show', f'{ref}:{name}'), text)
+        self.assertEqual(self.git('-C', str(bare), 'log', '-1', '--format=%an|%P', ref).strip().decode(),
+                         'github-actions[bot]|' + self.git('rev-parse', 'HEAD').strip().decode())
+        self.assertEqual(self.git('status', '--porcelain', '--untracked-files=no'), b'')
 
     def test_rejected_helper_patch_cannot_mutate_trusted_status_code_or_index(self):
         helper = Path('.github/scripts/codex_result.cjs')
