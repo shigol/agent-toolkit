@@ -112,7 +112,8 @@ def git(*arguments, env=None, check=True):
                           env=env, check=check, capture_output=True, timeout=120)
 
 
-def apply(patch):
+def validated_tree(patch):
+    """Check the patch on a disposable index and return its tree; the real index and working tree are untouched."""
     if patch.is_symlink() or not patch.is_file() or patch.stat().st_size > 5_000_000:
         raise ValueError('Review patch must be a regular file under 5 MB')
     if git('diff', '--quiet', check=False).returncode or git('diff', '--cached', '--quiet', check=False).returncode:
@@ -130,11 +131,14 @@ def apply(patch):
         staged = git('ls-files', '--stage', '-z', '--', *changed, env=environment).stdout.decode().split('\0')
         if any(row and row.split(' ', 1)[0] not in ('100644', '100755') for row in staged):
             raise ValueError('Symlink and submodule changes require direct review')
-    # A sparse receiver checks out only the default roots; add just the touched directories.
-    if git('config', '--bool', 'core.sparseCheckout', check=False).stdout.strip() == b'true':
-        folders = sorted({str(Path(name).parent) for name in changed if len(Path(name).parts) > 1})
-        if folders:
-            git('sparse-checkout', 'add', '--', *folders)
+        # --missing-ok: the base tree's blobs exist upstream; checking them would lazily fetch a partial clone's
+        # unrelated data (the new blobs were just written by git apply)
+        return git('write-tree', '--missing-ok', env=environment).stdout.strip().decode()
+
+
+def apply(patch):
+    """Apply a validated patch to a full checkout's index and working tree."""
+    validated_tree(patch)
     git('apply', '--check', str(patch.resolve()))
     git('apply', '--index', str(patch.resolve()))
 
@@ -145,8 +149,10 @@ def save_branch(patch, branch, run_id):
         raise ValueError('Invalid result branch/run')
     if not patch.exists():
         return ''
-    apply(patch)
-    tree = git('write-tree').stdout.strip()
+    # The commit is built from the validated tree alone: a sparse receiver checks out nothing more and fetches no
+    # unrelated blob. Widening the sparse checkout to the touched directories timed out at 120 s on a project with a
+    # large data tree (career run 41590842381, 11-03).
+    tree = validated_tree(patch)
     reference = 'refs/heads/' + branch
 
     def existing():
@@ -155,20 +161,20 @@ def save_branch(patch, branch, run_id):
             return False
         found.check_returncode()
         git('fetch', '--depth=1', 'origin', reference)
-        if git('rev-parse', 'FETCH_HEAD^{tree}').stdout.strip() != tree:
+        if git('rev-parse', 'FETCH_HEAD^{tree}').stdout.strip().decode() != tree:
             raise ValueError('Existing review branch differs; independent recovery review required')
         return True
 
     if existing():
         return branch
-    git('switch', '-c', branch)
-    git('-c', 'user.name=github-actions[bot]', '-c',
-        'user.email=41898282+github-actions[bot]@users.noreply.github.com', 'commit',
-        '-m', f'Codex: save committed-brief result for review (run {run_id})', '-m',
-        "Skills: none (transport only; source claims remain in the worker answer and trace)")
+    identity = {**os.environ, 'GIT_AUTHOR_NAME': 'github-actions[bot]', 'GIT_COMMITTER_NAME': 'github-actions[bot]',
+                'GIT_AUTHOR_EMAIL': '41898282+github-actions[bot]@users.noreply.github.com',
+                'GIT_COMMITTER_EMAIL': '41898282+github-actions[bot]@users.noreply.github.com'}
+    commit = git('commit-tree', tree, '-p', 'HEAD', '-m', f'Codex: save committed-brief result for review (run {run_id})', '-m',
+                 "Skills: none (transport only; source claims remain in the worker answer and trace)", env=identity).stdout.strip().decode()
     # A past shallow source revision may no longer be an advertised remote tip.
     # Negotiate its known base before packing, avoiding lazy fetch of unrelated promisor blobs.
-    pushed = git('-c', 'push.negotiate=true', 'push', 'origin', 'HEAD:' + reference, check=False)
+    pushed = git('-c', 'push.negotiate=true', 'push', 'origin', commit + ':' + reference, check=False)
     if pushed.returncode and not existing():
         pushed.check_returncode()
     return branch
