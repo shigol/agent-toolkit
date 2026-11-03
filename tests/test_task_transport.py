@@ -79,6 +79,50 @@ class TaskTransportTests(unittest.TestCase):
             self.assertEqual(report['held'], ['auth.json'])
             self.assertNotIn(b'not a real credential', (Path(output) / 'changes.patch').read_bytes())
 
+    def test_project_review_roots_carry_source_but_keep_held_data_and_flag_blocked(self):
+        import json
+        Path('.agent-toolkit.json').write_text(json.dumps({'schema': 1, 'review': {'roots': ['job-market'], 'held': ['job-market/db']}}))
+        self.assertTrue(PATCH.allowed('job-market/crawler/costs.py'))
+        self.assertFalse(PATCH.allowed('job-market/db/companies.json'))
+        self.assertFalse(PATCH.allowed('job-market/dbx/../db/x.json'))
+        self.assertTrue(PATCH.allowed('job-market/dbx/x.json'))
+        self.assertFalse(PATCH.allowed('linkedin/notes.md'))
+        Path('job-market/crawler').mkdir(parents=True); Path('job-market/crawler/costs.py').write_text('x = 1\n')
+        Path('job-market/db').mkdir(); Path('job-market/db/rows.json').write_text('{}\n')
+        Path('linkedin').mkdir(); Path('linkedin/notes.md').write_text('outside\n')
+        Path('__pycache__').mkdir(); Path('__pycache__/a.pyc').write_bytes(b'0')
+        with tempfile.TemporaryDirectory() as output:
+            PATCH.save(Path(output))
+            report = json.loads((Path(output) / 'patch-report.json').read_text())
+            self.assertIn('job-market/crawler/costs.py', report['saved'])
+            self.assertEqual(report['blocked'], ['job-market/db/rows.json', 'linkedin/notes.md'])
+            self.assertEqual(PATCH.blocked(Path(output) / 'patch-report.json'), 3)
+            Path(output, 'patch-report.json').write_text(json.dumps({'held': ['.cache/x'], 'blocked': []}))
+            self.assertEqual(PATCH.blocked(Path(output) / 'patch-report.json'), 0)
+        for bad in ({'roots': ['../x']}, {'roots': ['a/b']}, {'held': [1]}, {'other': []}):
+            Path('.agent-toolkit.json').write_text(json.dumps({'schema': 1, 'review': bad}))
+            with self.assertRaises(ValueError):
+                PATCH.allowed('docs/a.md')
+
+    def test_sparse_receiver_adds_only_touched_project_root_directories(self):
+        import json
+        Path('.agent-toolkit.json').write_text(json.dumps({'schema': 1, 'review': {'roots': ['job-market'], 'held': ['job-market/db']}}))
+        Path('job-market/crawler').mkdir(parents=True); Path('job-market/crawler/costs.py').write_text('x = 1\n')
+        Path('job-market/db').mkdir(); Path('job-market/db/rows.json').write_text('{}\n')
+        self.git('add', '.'); self.git('commit', '-qm', 'Project layout')
+        Path('job-market/crawler/costs.py').write_text('x = 2\n')
+        Path('job-market/app').mkdir(); Path('job-market/app/new.py').write_text('y = 1\n')
+        self.git('add', '.')
+        patch = self.root / 'candidate.patch'
+        patch.write_bytes(self.git('diff', '--cached', '--binary'))
+        self.git('reset', '--hard', '-q', 'HEAD'); Path('job-market/app/new.py').unlink(missing_ok=True)
+        self.git('sparse-checkout', 'set', 'docs')
+        self.assertFalse(Path('job-market/crawler/costs.py').exists())
+        PATCH.apply(patch)
+        self.assertEqual(Path('job-market/crawler/costs.py').read_text(), 'x = 2\n')
+        self.assertEqual(Path('job-market/app/new.py').read_text(), 'y = 1\n')
+        self.assertFalse(Path('job-market/db/rows.json').exists())
+
     def test_rejected_helper_patch_cannot_mutate_trusted_status_code_or_index(self):
         helper = Path('.github/scripts/codex_result.cjs')
         helper.parent.mkdir(parents=True)

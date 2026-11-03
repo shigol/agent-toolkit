@@ -8,14 +8,44 @@ import subprocess
 import sys
 
 
-def allowed(name):
+ROOTS = ('src', 'public', 'scripts', 'tools', 'tests', 'docs', 'codex', 'catalogue')
+NAME = re.compile(r'[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*')
+
+
+def review_paths(config='.agent-toolkit.json'):
+    """Project-declared extra source roots and held subtrees (for example a data store the agent must not write)."""
+    path = Path(config)
+    if not os.path.lexists(path):
+        return ROOTS, ()
+    if path.is_symlink() or not path.is_file():
+        raise ValueError('Project review settings must be a regular file')
+    review = json.loads(path.read_text()).get('review', {})
+    if not isinstance(review, dict) or set(review) - {'roots', 'held'}:
+        raise ValueError('Invalid project review settings')
+    roots, held = review.get('roots', []), review.get('held', [])
+    for values in (roots, held):
+        if not isinstance(values, list) or not all(isinstance(v, str) and NAME.fullmatch(v) for v in values):
+            raise ValueError('Review roots/held must be plain relative paths')
+    if any('/' in root for root in roots):
+        raise ValueError('Review roots are top-level directories')
+    return ROOTS + tuple(roots), tuple(held)
+
+
+def allowed(name, paths=None):
+    roots, held = paths or review_paths()
     path = Path(name)
     return (not path.is_absolute() and '..' not in path.parts
             and not any(part.startswith('.') or part in ('node_modules', '__pycache__', 'vendor') for part in path.parts)
             and path.suffix not in ('.pyc', '.enc', '.pem', '.key')
             and path.name.lower() not in ('auth.json', 'credentials.json')
-            and (len(path.parts) == 1 or path.parts[0] in
-                 ('src', 'public', 'scripts', 'tools', 'tests', 'docs', 'codex', 'catalogue')))
+            and (len(path.parts) == 1 or path.parts[0] in roots)
+            and not any(name == h or name.startswith(h + '/') for h in held))
+
+
+def quiet(name):
+    """Held for hygiene (hidden, cache or generated files) rather than for being outside the review roots."""
+    path = Path(name)
+    return any(part.startswith('.') or part in ('node_modules', '__pycache__', 'vendor') for part in path.parts) or path.suffix == '.pyc'
 
 
 def save(output):
@@ -24,10 +54,11 @@ def save(output):
     names = set()
     for args in (['diff', '--name-only', '-z', 'HEAD'], ['ls-files', '--others', '--exclude-standard', '-z']):
         names.update(p for p in subprocess.check_output(['git', *args]).decode().split('\0') if p)
+    paths = review_paths()
     selected, held = [], []
     for name in sorted(names):
         path = Path(name)
-        if allowed(name) and not path.is_symlink() and (not path.exists() or path.is_file()):
+        if allowed(name, paths) and not path.is_symlink() and (not path.exists() or path.is_file()):
             selected.append(name)
         else:
             held.append(name)
@@ -38,7 +69,9 @@ def save(output):
             raise ValueError('Review patch exceeds 5 MB')
         (output / 'changes.patch').write_bytes(patch)
     (output / 'patch-report.json').write_text(json.dumps({'saved': selected, 'held': held,
-        'meaning': 'Review transport only. Tests and skill claims must be checked in the trace; held paths are not pushed.'}, indent=2) + '\n')
+        'blocked': [name for name in held if not quiet(name)],
+        'meaning': 'Review transport only. Tests and skill claims must be checked in the trace; held paths are not pushed. '
+                   'Blocked paths are source changes outside the review roots: the result is incomplete.'}, indent=2) + '\n')
 
 
 def snapshot(output):
@@ -46,10 +79,11 @@ def snapshot(output):
     output.mkdir(parents=True, exist_ok=True)
     tracked = {p for p in subprocess.check_output(['git', 'diff', '--name-only', '-z', 'HEAD']).decode().split('\0') if p}
     untracked = {p for p in subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard', '-z']).decode().split('\0') if p}
+    paths = review_paths()
     selected, held = [], []
     for name in sorted(tracked | untracked):
         candidate = Path(name)
-        (selected if allowed(name) and not candidate.is_symlink() and
+        (selected if allowed(name, paths) and not candidate.is_symlink() and
          (not candidate.exists() or candidate.is_file()) else held).append(name)
     pieces = []
     old = [name for name in selected if name in tracked]
@@ -90,11 +124,17 @@ def apply(patch):
         git('read-tree', 'HEAD', env=environment)
         git('apply', '--cached', str(patch.resolve()), env=environment)
         changed = [p for p in git('diff', '--cached', '--name-only', '-z', 'HEAD', env=environment).stdout.decode().split('\0') if p]
-        if not changed or any(not allowed(name) for name in changed):
+        paths = review_paths()
+        if not changed or any(not allowed(name, paths) for name in changed):
             raise ValueError('Patch includes a held path or no changes; it will not be pushed')
         staged = git('ls-files', '--stage', '-z', '--', *changed, env=environment).stdout.decode().split('\0')
         if any(row and row.split(' ', 1)[0] not in ('100644', '100755') for row in staged):
             raise ValueError('Symlink and submodule changes require direct review')
+    # A sparse receiver checks out only the default roots; add just the touched directories.
+    if git('config', '--bool', 'core.sparseCheckout', check=False).stdout.strip() == b'true':
+        folders = sorted({str(Path(name).parent) for name in changed if len(Path(name).parts) > 1})
+        if folders:
+            git('sparse-checkout', 'add', '--', *folders)
     git('apply', '--check', str(patch.resolve()))
     git('apply', '--index', str(patch.resolve()))
 
@@ -134,9 +174,21 @@ def save_branch(patch, branch, run_id):
     return branch
 
 
+def blocked(report):
+    """Exit status for the result step: a dropped source change must never read as a saved result."""
+    names = json.loads(report.read_text()).get('blocked', []) if report.is_file() and not report.is_symlink() else []
+    if names:
+        print(f'::error::{len(names)} changed file(s) are outside the review roots and were NOT saved: '
+              + ', '.join(names[:20]), file=sys.stderr)
+    return 3 if names else 0
+
+
 if __name__ == '__main__':
     if sys.argv[1] == 'transport':
         print('branch=' + save_branch(Path(sys.argv[2]), sys.argv[3], sys.argv[4]))
+        sys.exit(blocked(Path(sys.argv[2]).parent / 'patch-report.json'))
+    elif sys.argv[1] == 'blocked':
+        sys.exit(blocked(Path(sys.argv[2])))
     elif sys.argv[1] == 'apply':
         apply(Path(sys.argv[2]))
     elif sys.argv[1] == 'snapshot':
