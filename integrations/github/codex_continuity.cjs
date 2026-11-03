@@ -640,4 +640,51 @@ async function waitForPredecessor({github, repo, value = '', branch, worker = 'c
   throw Error('Predecessor workflow is not complete; durable state remains for watchdog recovery');
 }
 
-module.exports = {STATE_REF, STATE_FILE, regular, loadPlan, loadBriefPlan, parse, createRecord, receipt, advance, Store, summary, controller, contractHashes, waitForPredecessor};
+// A concurrency group keeps one pending run; a newer dispatch cancels the waiting one before any job
+// starts. Each worker run, once it holds the group, re-dispatches the oldest such dropped request, one
+// at a time, so the next waiting slot is never taken from another request. The run name carries the
+// inputs because the API does not return workflow_dispatch inputs.
+const TITLE = /^Codex request ([A-Za-z0-9._-]{1,80}) — ((?:codex|docs|tools)\/[A-Za-z0-9_./-]+\.md) · (task|native|global|value-smoke|value|replay-smoke) (-|[1-9][0-9]{0,9}) (-|[1-9][0-9]{0,19})$/;
+function dropInputs(title) {
+  const match = TITLE.exec(title || '');
+  if (!match) return null;
+  return {request_id: match[1], brief: match[2], mode: match[3],
+    request_issue: match[4] === '-' ? '' : match[4], previous_run: match[5] === '-' ? '' : match[5]};
+}
+async function requeueDropped({github, repo, workflow = 'codex-task.yml', runId, branch, now = Date.now(),
+  hours = 48, limit = 5}) {
+  const since = new Date(now - hours * 3600000).toISOString();
+  const runs = (await github.paginate(github.rest.actions.listWorkflowRuns, {...repo, workflow_id: workflow,
+    created: `>=${since}`, per_page: 100})).filter(run => run.event === 'workflow_dispatch'
+    && run.head_branch === branch && run.head_repository?.full_name === `${repo.owner}/${repo.repo}`);
+  const waiting = runs.filter(run => run.id !== runId && ['queued', 'pending', 'waiting', 'requested'].includes(run.status));
+  if (waiting.length) return {action: 'wait', reason: `run ${waiting[0].id} already holds the waiting slot`};
+  const groups = new Map();
+  for (const run of runs) {
+    const inputs = dropInputs(run.display_title);
+    if (!inputs || /^continuity-/.test(inputs.request_id)) continue; // the controller retries its own steps
+    const key = run.display_title;
+    if (!groups.has(key)) groups.set(key, {inputs, runs: []});
+    groups.get(key).runs.push(run);
+  }
+  const candidates = [];
+  for (const {inputs, runs: same} of groups.values()) {
+    same.sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id - b.id);
+    const last = same.at(-1);
+    if (last.id === runId || last.status !== 'completed' || last.conclusion !== 'cancelled') continue;
+    const jobs = (await github.rest.actions.listJobsForWorkflowRun({...repo, run_id: last.id, per_page: 1})).data;
+    if (jobs.total_count) continue; // cancelled after it started: a person or a guard stopped it
+    const drops = same.filter(run => run.conclusion === 'cancelled').length;
+    if (drops > limit) { candidates.push({inputs, last, skip: `dropped ${drops} times`}); continue; }
+    candidates.push({inputs, last});
+  }
+  candidates.sort((a, b) => Date.parse(a.last.created_at) - Date.parse(b.last.created_at));
+  const skipped = candidates.filter(item => item.skip).map(item => ({run_id: item.last.id, reason: item.skip}));
+  const next = candidates.find(item => !item.skip);
+  if (!next) return {action: 'none', skipped};
+  await github.rest.actions.createWorkflowDispatch({...repo, workflow_id: workflow, ref: branch, inputs: next.inputs});
+  return {action: 'requeued', run_id: next.last.id, inputs: next.inputs,
+    remaining: candidates.filter(item => !item.skip).length - 1, skipped};
+}
+
+module.exports = {dropInputs, requeueDropped, STATE_REF, STATE_FILE, regular, loadPlan, loadBriefPlan, parse, createRecord, receipt, advance, Store, summary, controller, contractHashes, waitForPredecessor};
